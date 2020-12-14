@@ -34,8 +34,7 @@ def part1():
 
 def find_number_of_houses_visited(data, house_visited=None):
     current_position = (0,0)
-    if house_visited is None:
-        house_visited = set(current_position)
+    house_visited = set([current_position])
     for char in data:
         if char == '>':
             x, y = current_position
@@ -64,7 +63,7 @@ def part2():
     data = load_data()[0]
 
     santa_result = find_number_of_houses_visited(data[0::2])
-    robot_result = find_number_of_houses_visited(data[1::2], santa_result)
+    robot_result = find_number_of_houses_visited(data[1::2])
     print(len(santa_result))
     print(len(robot_result))
     print(len(set.union(santa_result, robot_result)))

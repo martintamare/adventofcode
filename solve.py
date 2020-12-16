@@ -40,5 +40,5 @@ def part2():
 
 test_part1()
 #part1()
-test_part2()
-part2()
+#test_part2()
+#part2()

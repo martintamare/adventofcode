@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import math
 import numpy as np
 
 test_data = [
@@ -110,6 +109,7 @@ test_data = [
     '..#.###...',
     '..#.......',
     '..#.###...',
+    '',
 ]
 
 
@@ -136,40 +136,42 @@ class Tile:
         self.matrix = np.array(matrix)
         self.working_matrix = None
 
+    def print_matrix(self):
+        for row in self.matrix:
+            print(''.join(row))
+
+    def print_working_matrix(self):
+        for row in self.working_matrix:
+            print(''.join(row))
+
     def is_valid(self, row, column, processed_data, processed_index):
         next_row, next_column = self.compute_next_position(row, column)
         must_match = self.what_should_i_inspect(row, column, next_row, next_column)
-        print(f'Looking for valid neighboors for {self.index} at position ({row},{column})')
-        print(f'Next cell is ({next_row},{next_column}) must match {must_match}')
         already_tested = len(processed_index)
         total = len(self.tiles.keys())
-        print(f'already tested {already_tested} total {total}')
+
         if already_tested == total:
-            print('yeah')
-            exit(0)
+            for row in processed_data:
+                for item in row:
+                    if item is None:
+                        return False
             return True
 
-        is_ok_at_place = False
-        for orientation in self.orientations():
-            self.set_orientation(orientation)
+        my_orientation = processed_index[self.index]
+        self.set_orientation(my_orientation)
 
-            candidates_with_orientation = self.find_possible_neighboors(must_match, processed_index)
-            if not candidates_with_orientation:
-                return False
+        candidates_with_orientation = self.find_possible_neighboors(must_match, processed_data, processed_index, next_row, next_column)
 
-            is_ok = True
-            for candidate, orientation in candidates_with_orientation:
-                processed_data_copy = processed_data.copy()
-                processed_index_copy = processed_index.copy()
-                processed_data_copy[next_row][next_column] = candidate
-                processed_index_copy.append(candidate.index)
-                if not candidate.is_valid(next_row, next_column, processed_data_copy, processed_index_copy):
-                    is_ok = False
-                    break
-            if is_ok:
-                is_ok_at_place = True
+        is_ok = False
+        for candidate, orientation in candidates_with_orientation:
+            processed_data_copy = processed_data.copy()
+            processed_index_copy = dict(processed_index)
+            processed_data_copy[next_row][next_column] = candidate
+            processed_index_copy[candidate.index] = orientation
+            if candidate.is_valid(next_row, next_column, processed_data_copy, processed_index_copy):
+                is_ok = True
                 break
-        if is_ok_at_place:
+        if is_ok:
             return True
         else:
             return False
@@ -177,13 +179,17 @@ class Tile:
     def what_should_i_inspect(self, r, c, next_r, next_c):
         # Same line -> only right
         if r == next_r:
-            return ['right']
+            if r == 0:
+                return ['left']
+            elif next_c == 0:
+                return ['up']
+            else:
+                return ['up', 'left']
         else:
             if next_c == 0:
                 return ['up']
             else:
-                return ['up', 'right']
-            exit(0)
+                return ['up', 'left']
 
     def __repr__(self):
         return f'Tile {self.index}'
@@ -200,7 +206,7 @@ class Tile:
 
     def set_orientation(self, orientation):
         rotate, flip = orientation
-        k = rotate / 90;
+        k = rotate / 90
         if not k:
             working_matrix = self.matrix
         else:
@@ -211,57 +217,43 @@ class Tile:
         elif flip == 1:
             self.working_matrix = np.flipud(working_matrix)
 
-    def match_right(self, other):
+    def match_left(self, processed_data, row, column, orientation):
+        length = len(self.matrix)
+        self.set_orientation(orientation)
         is_valid = True
-        for index in range(self.size):
-            if self.working_matrix[index][self.size-1] != other.working_matrix[index][0]:
+        actual_tile = processed_data[row][column-1]
+        for index in range(length):
+            if self.working_matrix[index][0] != actual_tile.working_matrix[index][-1]:
                 is_valid = False
                 break
         return is_valid
 
-    def match_left(self, other):
+    def match_up(self, processed_data, row, column, orientation):
+        length = len(self.matrix)
+        self.set_orientation(orientation)
         is_valid = True
-        for index in range(self.size):
-            if self.working_matrix[index][0] != other.working_matrix[index][self.size-1]:
+        actual_tile = processed_data[row-1][column]
+        for index in range(length):
+            if self.working_matrix[0][index] != actual_tile.working_matrix[-1][index]:
                 is_valid = False
                 break
         return is_valid
 
-    def match_up(self, other):
-        is_valid = True
-        for index in range(self.size):
-            if self.working_matrix[0][index] != other.working_matrix[self.size-1][index]:
-                is_valid = False
-                break
-        return is_valid
-
-    def match_down(self, other):
-        is_valid = True
-        for index in range(self.size):
-            if self.working_matrix[self.size-1][index] != other.working_matrix[0][index]:
-                is_valid = False
-                break
-        return is_valid
-
-
-    def find_possible_neighboors(self, must_match, processed_index):
-        right = True
-
+    def find_possible_neighboors(self, must_match, processed_data, processed_index, row, column):
         candidates_with_orientation = []
         for index in self.tiles.keys():
             if index in processed_index:
                 continue
             test_tile = self.tiles[index]
             for orientation in test_tile.orientations():
-                test_tile.set_orientation(orientation)
                 is_matching = True
                 for match in must_match:
-                    if match == 'right':
-                        if not self.match_right(test_tile):
+                    if match == 'left':
+                        if not test_tile.match_left(processed_data, row, column, orientation):
                             is_matching = False
                             break
                     elif match == 'up':
-                        if not self.match_down(test_tile):
+                        if not test_tile.match_up(processed_data, row, column, orientation):
                             is_matching = False
                             break
 
@@ -269,16 +261,12 @@ class Tile:
                     candidates_with_orientation.append((test_tile, orientation))
         return candidates_with_orientation
 
-
     def compute_next_position(self, row, column):
         next_column = (column + 1) % self.size
         next_row = row
         if next_column == 0:
             next_row = row + 1
         return next_row, next_column
-
-
-
 
 
 def process_data(data, size):
@@ -298,27 +286,32 @@ def process_data(data, size):
     return tiles
 
 
-def compute_corner_tilt(data):
-    tiles = process_data(data, size=3)
+def compute_corner_tilt(data, size):
+    tiles = process_data(data, size=size)
+    print(tiles)
+    assert len(tiles.keys()) == size * size
 
     for index in tiles.keys():
         tile = tiles[index]
 
-        row = 0
-        column = 0
-        processed_data = [[None for i in range(3)] for j in range(3)]
-        processed_data[row][column] = tile
-        processed_index = [tile.index]
+        for orientation in tile.orientations():
+            row = 0
+            column = 0
+            processed_data = [[None for i in range(size)] for j in range(size)]
+            processed_data[row][column] = tile
+            processed_index = {tile.index: orientation}
 
-        if tile.is_valid(row, column, processed_data, processed_index):
-            print(tile.corners())
+            if tile.is_valid(row, column, processed_data, processed_index):
+                for row in processed_data:
+                    print(row)
+                return processed_data[0][0].index * processed_data[-1][0].index * processed_data[0][-1].index * processed_data[-1][-1].index
 
 
 def test_part1():
     data = test_data
-    result = compute_corner_tilt(data)
+    result = compute_corner_tilt(data, size=3)
     print(f'test1 is {result}')
-    #assert result == 25
+    assert result == 20899048083289
 
 
 def test_part2():
@@ -330,8 +323,7 @@ def test_part2():
 
 def part1():
     data = load_data()
-    result = compute_corner_tilt(data)
-    result = None
+    result = compute_corner_tilt(data, size=12)
     print(f'part1 is {result}')
 
 
@@ -343,5 +335,5 @@ def part2():
 
 test_part1()
 part1()
-#test_part2()
+#test_part3()
 #part2()

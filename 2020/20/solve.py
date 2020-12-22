@@ -112,6 +112,33 @@ test_data = [
     '',
 ]
 
+test_final = [
+    '.#.#..#.##...#.##..#####',
+    '###....#.#....#..#......',
+    '##.##.###.#.#..######...',
+    '###.#####...#.#####.#..#',
+    '##.#....#.##.####...#.##',
+    '...########.#....#####.#',
+    '....#..#...##..#.#.###..',
+    '.####...#..#.....#......',
+    '#..#.##..#..###.#.##....',
+    '#.####..#.####.#.#.###..',
+    '###.#.#...#.######.#..##',
+    '#.####....##..########.#',
+    '##..##.#...#...#.#.#.#..',
+    '...#..#..#.#.##..###.###',
+    '.#.#....#.##.#...###.##.',
+    '###.#...#..#.##.######..',
+    '.#.#.###.##.##.#..#.##..',
+    '.####.###.#...###.#..#.#',
+    '..#.#..#..#.#.#.####.###',
+    '#..####...#.#.#.###.###.',
+    '#####..#####...###....##',
+    '#.##..#..#...#..####...#',
+    '.#.###..##..##..####.##.',
+    '...###...##...#...#..###',
+]
+
 
 def load_data():
     data = []
@@ -150,15 +177,15 @@ class Tile:
         already_tested = len(processed_index)
         total = len(self.tiles.keys())
 
+        my_orientation = processed_index[self.index]
+        self.set_orientation(my_orientation)
+
         if already_tested == total:
             for row in processed_data:
                 for item in row:
                     if item is None:
                         return False
             return True
-
-        my_orientation = processed_index[self.index]
-        self.set_orientation(my_orientation)
 
         candidates_with_orientation = self.find_possible_neighboors(must_match, processed_data, processed_index, next_row, next_column)
 
@@ -286,9 +313,8 @@ def process_data(data, size):
     return tiles
 
 
-def compute_corner_tilt(data, size):
+def compute_matrix(data, size):
     tiles = process_data(data, size=size)
-    print(tiles)
     assert len(tiles.keys()) == size * size
 
     for index in tiles.keys():
@@ -302,38 +328,120 @@ def compute_corner_tilt(data, size):
             processed_index = {tile.index: orientation}
 
             if tile.is_valid(row, column, processed_data, processed_index):
-                for row in processed_data:
-                    print(row)
-                return processed_data[0][0].index * processed_data[-1][0].index * processed_data[0][-1].index * processed_data[-1][-1].index
+                return processed_data
+
+
+def compute_final_array(data):
+    final_array = []
+    for row in data:
+        for r_index in range(1, len(row[0].working_matrix)-1):
+            row_data = []
+            for tile in row:
+                for c_index in range(1, len(row[0].working_matrix)-1):
+                    row_data.append(tile.working_matrix[r_index][c_index])
+            final_array.append(row_data)
+    return np.array(final_array)
+
+
+def find_water_roughness(data):
+    # Find see monsters
+    orientations = []
+    for rotate in [0, 90, 180, 270]:
+        for flip in [0, 1]:
+            orientations.append((rotate, flip))
+
+    for rotate, flip in orientations:
+        print(f'testing {rotate},{flip}')
+        working_matrix = data.copy()
+        k = rotate / 90
+        if k:
+            working_matrix = np.rot90(working_matrix, k)
+
+        if flip == 1:
+            working_matrix = np.flipud(working_matrix)
+
+        sea = []
+        for row in working_matrix:
+            sea.append([1 if x == '#' else 0 for x in row])
+        sea_monsters = find_sea_monsters(np.array(sea))
+        if sea_monsters:
+            return np.sum(sea) - len(sea_monsters)
+
+            exit(0)
+
+
+def find_sea_monsters(sea):
+    pattern = [
+        '..................#.',
+        '#....##....##....###',
+        '.#..#..#..#..#..#...',
+    ]
+    bool_pattern = []
+    for row in pattern:
+        bool_pattern.append([1 if x == '#' else 0 for x in row])
+    bool_pattern = np.array(bool_pattern)
+
+    sea_size = len(sea)
+    sea_row = sea_size
+    sea_col = sea_size
+    pattern_col = len(pattern[0])
+    pattern_row = len(pattern)
+
+    print(f'sea : {sea_row}x{sea_col} pattern : {pattern_row}x{pattern_col}')
+    pattern_sum = np.sum(bool_pattern)
+
+    r_index = 0
+    c_index = 0
+    monster_present = set()
+    while r_index < sea_row - pattern_row:
+        while c_index < sea_col - pattern_col:
+            part_of_sea = sea[r_index:r_index+pattern_row:1, c_index:c_index+pattern_col:1]
+            result = np.sum((part_of_sea * bool_pattern))
+            if result == pattern_sum:
+                print(f'found at {r_index},{c_index}!')
+                for r in range(pattern_row):
+                    for c in range(pattern_col):
+                        if bool_pattern[r][c]:
+                            monster_present.add((r+r_index, c+c_index))
+            c_index += 1
+        r_index += 1
+        c_index = 0
+
+    return monster_present
 
 
 def test_part1():
     data = test_data
-    result = compute_corner_tilt(data, size=3)
+    processed_data = compute_matrix(data, size=3)
+    result = processed_data[0][0].index * processed_data[-1][0].index * processed_data[0][-1].index * processed_data[-1][-1].index
     print(f'test1 is {result}')
     assert result == 20899048083289
 
+    final_array = []
+    for row in test_final:
+        row_data = []
+        for char in row:
+            row_data.append(char)
+        final_array.append(row_data)
+    test_array = np.array(final_array)
+    final_array = compute_final_array(processed_data)
+    assert np.array_equal(test_array, final_array)
 
-def test_part2():
-    data = test_data
-    result = None
-    print(f'test2 is {result}')
-    assert result == 25
+    result = find_water_roughness(final_array)
+    print(f'test water roughness is {result}')
+    assert result == 273
 
 
 def part1():
     data = load_data()
-    result = compute_corner_tilt(data, size=12)
+    processed_data = compute_matrix(data, size=12)
+    result = processed_data[0][0].index * processed_data[-1][0].index * processed_data[0][-1].index * processed_data[-1][-1].index
     print(f'part1 is {result}')
 
-
-def part2():
-    data = load_data()
-    result = None
-    print(f'part2 is {result}')
+    final_array = compute_final_array(processed_data)
+    result = find_water_roughness(final_array)
+    print(f'part2 water roughness is {result}')
 
 
 test_part1()
 part1()
-#test_part3()
-#part2()

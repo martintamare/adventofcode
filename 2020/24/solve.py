@@ -63,6 +63,7 @@ class Floor:
 
             self.tiles[vector] = (self.tiles[vector] + 1) % 2
 
+        # Add neighboors
         new_tiles = []
         for index, tile in self.tiles.items():
             vectors = [
@@ -90,6 +91,7 @@ class Floor:
         neighboors = collections.defaultdict(int)
         new_tiles = []
 
+        # Iterate, compute neigboors, and new neighboors to add
         for index, tile in self.tiles.items():
             vectors = [
                 (-1, 0),
@@ -107,9 +109,11 @@ class Floor:
                 else:
                     new_tiles.append(test_index)
 
+        # Add new neighboors
         for vector in new_tiles:
             self.tiles[vector] = 0
 
+        # iterate
         for index, tile in self.tiles.items():
             if tile == 1:
                 if neighboors[index] == 0 or neighboors[index] > 2:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from statistics import median, mean
-from math import ceil
+from math import ceil, floor
 
 test_data = [
     '16,1,2,0,4,2,7,1,2,14',
@@ -40,10 +40,11 @@ def compute_fuel(step):
 
 def solve_part_2(data):
     data = list(map(int, data.split(',')))
+    data_mean = mean(data)
+    solutions = [int(floor(data_mean)), int(ceil(data_mean))]
 
     current_min_fuel = None
-    # Bruteforce this one
-    for solution in range(0, len(data)+1):
+    for solution in solutions:
         fuel = sum(list(map(lambda x: compute_fuel(abs(solution-x)), data)))
         if current_min_fuel is None:
             current_min_fuel = fuel
@@ -80,6 +81,7 @@ def part2():
     data = load_data()
     result = solve_part_2(data[0])
     print(f'part2 is {result}')
+    assert result == 97038163
 
 
 test_part1()

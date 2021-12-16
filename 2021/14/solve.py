@@ -44,65 +44,65 @@ def solve_part_1(data, iteration=10):
 
     cache = {}
 
-    def recurse(value, iteration_remaining):
-        print(f'iteration {iteration_remaining}')
-        new_value = list(range(0, 2*len(value)-1))
-        new_value = ''
+    def recurse_smart(value, iteration_remaining):
+        """Only count added value."""
+        cache_index = f'{value}_{iteration_remaining}'
+        if cache_index in cache:
+            return cache[cache_index]
 
-        if value in cache:
-            print('we have cache')
-            exit(0)
+        result = Counter()
+
+        if iteration_remaining == 1:
+            # Value is always of length 2 here
+            new_value = links[value]
+            result.update(new_value)
+            cache[cache_index] = result
+            return result
+
 
         for i in range(len(value) - 1):
             window = value[i:i+2]
-            if i == 0:
-                new_value += value[i]
-                new_value += links[window]
-                new_value += value[i+1]
-            else:
-                new_value += links[window]
-                new_value += value[i+1]
-        new_value = ''.join(new_value)
 
-        if iteration_remaining == 1:
-            return new_value
-        else:
-            cache[value] = new_value
-            return recurse(new_value, iteration_remaining - 1)
-    def recurse2(value, iteration_remaining):
-        print(f'iteration {iteration_remaining}')
-        if iteration_remaining == 0:
-            return value
+            # Add added value to the counter
+            # NN -> C
+            # Add C
+            new_value = links[window]
+            result.update(new_value)
 
-        if len(value) == 2:
-            new_value = ''
-            new_value += value[0]
-            new_value += links[value]
-            new_value += value[1]
-            return new_value
-        else:
-            new_value = value[0]
-            temp_value = recurse2(value[1:], iteration_remaining)
-            new_value += temp_value
-            return recurse2(new_value, iteration_remaining - 1)
+            # Recurse on pattern before 
+            # NC
+            window_before = f'{value[i]}{new_value}'
+            window_result = recurse_smart(window_before, iteration_remaining - 1)
+            result.update(window_result)
 
-            
-    final_value = recurse2(template, iteration)
-    counter = Counter(final_value)
-    most_common = None
-    least_common = None
+            # Recurse on patterne after
+            # CN
+            window_after = f'{new_value}{value[i+1]}'
+            window_result = recurse_smart(window_after, iteration_remaining - 1)
+            result.update(window_result)
 
-    for key, data in counter.items():
-        if most_common is None:
-            most_common = data
-        elif data > most_common:
-            most_common = data
-        if least_common is None:
-            least_common = data
-        elif data < least_common:
-            least_common = data
+        cache[cache_index] = result
+        return result
 
-    return most_common - least_common
+
+    def compute_result(c):
+        most_common = None
+        least_common = None
+        for key, data in c.items():
+            if most_common is None:
+                most_common = data
+            elif data > most_common:
+                most_common = data
+            if least_common is None:
+                least_common = data
+            elif data < least_common:
+                least_common = data
+        return most_common - least_common
+
+    counter = recurse_smart(template, iteration)
+    counter.update(template)
+    result = compute_result(counter)
+    return result
 
 
 
@@ -144,4 +144,4 @@ def part2():
 test_part1()
 part1()
 test_part2()
-#part2()
+part2()

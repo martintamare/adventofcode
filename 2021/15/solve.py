@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-sys.setrecursionlimit(1500)
+sys.setrecursionlimit(15000)
 
 
 test_data = [
@@ -36,6 +36,9 @@ class Point:
         self.risk = risk
         self._neighbors = None
         self._min_risk = None
+        self._min_risk_calculated_once = False
+        self._is_valid = None
+        self.cache = {}
 
     def __repr__(self):
         return f'{self.x},{self.y}'
@@ -46,6 +49,12 @@ class Point:
     def __hash__(self):
         return hash(f'{self.x},{self.y}')
 
+    def __lt__(self, other):
+        if self.x == other.x:
+            return self.y < other.y
+        else:
+            return self.x < other.x
+
     @property
     def neighbors(self):
         if self._neighbors is not None:
@@ -53,39 +62,30 @@ class Point:
 
         points = []
         min_point = None
-        # left
-        #if self.x > 0:
-        #    points.append(self.matrix.matrix[self.y][self.x - 1])
-        # up
-        #if self.y > 0:
-        #    points.append(self.matrix.matrix[self.y - 1][self.x])
         # down
         if self.y < self.matrix.height - 1:
             neighbor = self.matrix.matrix[self.y + 1][self.x]
-            min_point = neighbor.risk
             points.append(neighbor)
 
         # right
         if self.x < self.matrix.width - 1:
             neighbor = self.matrix.matrix[self.y][self.x + 1]
-            if min_point is not None:
-                if neighbor.risk < min_point:
-                    points.insert(0, neighbor)
-                else:
-                    points.append(neighbor)
-            else:
-                points.append(neighbor)
+            points.append(neighbor)
+
+        # left
+        if self.x > 0:
+            points.append(self.matrix.matrix[self.y][self.x - 1])
+        # up
+        if self.y > 0:
+            points.append(self.matrix.matrix[self.y - 1][self.x])
 
         self._neighbors = points
         return points
 
-    def min_risk(self, visited=[]):
-        if self._min_risk is not None:
-            return self._min_risk
-
+    def min_risk(self, visited=set()):
         global MIN_RISK
 
-        visited.append(self)
+        visited.add(self)
         path_risk = sum(map(lambda x: x.risk, visited)) - self.matrix.matrix[0][0].risk
         if MIN_RISK is not None:
             if path_risk > MIN_RISK:
@@ -122,12 +122,11 @@ class Point:
                 neighbor_min_risk = neighbor_risk
                 correct_neighbor = neighbor
 
-        
+        self._min_risk_calculated_once = True
         if neighbor_min_risk is None:
             return None
         else:
             final_risk = init_risk + neighbor_min_risk
-            self._min_risk = final_risk
             return final_risk
 
 

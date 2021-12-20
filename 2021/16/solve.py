@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import math
+
 translation_dic = {
     '0': '0000',
     '1': '0001',
@@ -57,7 +59,6 @@ class Packet:
     def __len__(self):
         return len(self.translated)
 
-
     def __repr__(self):
         return self.translated
 
@@ -65,79 +66,119 @@ class Packet:
         return self.translated
 
     @property
+    def min_length(self):
+        global_min_length = 11
+        if self.is_literal:
+            return global_min_length
+        elif self.length_type == 0:
+            return 6 + 15 + self.subpacket_length
+        elif self.length_type == 1:
+            return 6  + 11 + self.subpacket_number * global_min_length
+        else:
+            print('Should not arrived here ever')
+            exit(0)
+
+    @property
     def valid(self):
         cache_index = self.translated
         if cache_index in cache:
             return cache[cache_index]
 
-        if len(self) < 11:
-            DEBUG_VALID and print('VALID=length to small')
-            cache[cache_index] = False
-            return False
+        is_valid = True
 
         if self.is_literal:
             try:
                 test = self.literal_value
-                cache[cache_index] = True
-                return True
+                if not test:
+                    DEBUG_VALID and print(f'{self}-VALID=is_literal but literal_value is 0')
             except Exception:
-                DEBUG_VALID and print('VALID=is_literal but no literal_value')
-                cache[cache_index] = False
-                return False
+                DEBUG_VALID and print(f'{self}-VALID=is_literal but no literal_value')
+                is_valid = False
+
         elif self.is_operator:
             if self.length_type == 0:
                 try:
                     self.subpacket_length
                 except Exception:
-                    DEBUG_VALID and print('VALID=is_operator 0 but no subpacket_length')
-                    cache[cache_index] = False
-                    return False
-                if not self.subpacket_length:
-                    cache[cache_index] = False
-                    return False
+                    DEBUG_VALID and print(f'{self}-VALID=is_operator 0 but no subpacket_length')
+                    is_valid = False
 
-                if len(self) < self.subpacket_length + 15 + 7:
-                    DEBUG_VALID and print('VALID=is_operator 0 but length too small')
-                    cache[cache_index] = False
-                    return False
+                if is_valid and not self.subpacket_length:
+                    DEBUG_VALID and print(f'{self}-VALID=is_operator 0 but subpacket_length is 0')
+                    is_valid = False
+
             elif self.length_type == 1:
                 try:
                     self.subpacket_number
                 except Exception:
-                    DEBUG_VALID and print('VALID=is_operator 1 but no subpacket_number')
-                    cache[cache_index] = False
-                    return False
-                if not self.subpacket_number:
-                    cache[cache_index] = False
-                    return False
+                    DEBUG_VALID and print(f'{self}-VALID=is_operator 1 but no subpacket_number')
+                    is_valid = False
 
-                if len(self) < 7 + 11 + self.subpacket_number * 7:
-                    DEBUG_VALID and print('VALID=is_operator 1 but length too small')
-                    cache[cache_index] = False
-                    return False
-                try:
-                    assert len(self.subpackets) == self.subpacket_number
-                except Exception:
-                    DEBUG_VALID and print('VALID=is_operator 1 but not enought subpackets')
-                    cache[cache_index] = False
-                    return False
+                if is_valid and not self.subpacket_number:
+                    DEBUG_VALID and print(f'{self}-VALID=is_operator 1 but subpacket_number is 0')
+                    is_valid = False
+
+                if is_valid:
+                    try:
+                        assert len(self.subpackets) == self.subpacket_number
+                    except Exception:
+                        DEBUG_VALID and print(f'{self}-VALID=is_operator 1 but not enought subpackets')
+                        is_valid = False
             else:
-                cache[cache_index] = False
-                return False
+                print('Should not arrived here')
+                exit(0)
+
             try:
                 self.subpackets
-                cache[cache_index] = True
-                return True
             except Exception:
-                DEBUG_VALID and print('VALID=is_operator but no subpackets')
-                cache[cache_index] = False
-                return False
-
+                DEBUG_VALID and print(f'{self}-VALID=is_operator but no subpackets')
+                is_valid = False
         else:
-            # Todo
-            print('VALID=todo')
-            input('TODO')
-            input()
+            print('Should not arrived here')
+            exit(0)
+
+        try:
+            min_length = self.min_length
+            if len(self) < min_length:
+                DEBUG_VALID and print('{self}-VALID=length but length is {min_length}')
+                is_valid = False
+        except Exception:
+            DEBUG_VALID and print('{self}-VALID=length but length exception')
+            is_valid = False
+
+        cache[cache_index] = is_valid
+        return is_valid
+
+    @property
+    def value(self):
+        if self.is_literal:
+            return self.literal_value
+        elif not self.is_operator:
+            raise ('NDJZANBFJKAZNFKJZA')
+
+        if self.type == 0:
+            return sum(map(lambda x: x.value, self.subpackets))
+        elif self.type == 1:
+            return math.prod(map(lambda x: x.value, self.subpackets))
+        elif self.type == 2:
+            return min(map(lambda x: x.value, self.subpackets))
+        elif self.type == 3:
+            return max(map(lambda x: x.value, self.subpackets))
+        elif self.type == 5:
+            if self.subpackets[0].value > self.subpackets[1].value:
+                return 1
+            else:
+                return 0
+        elif self.type == 6:
+            if self.subpackets[0].value < self.subpackets[1].value:
+                return 1
+            else:
+                return 0
+        elif self.type == 7:
+            if self.subpackets[0].value == self.subpackets[1].value:
+                return 1
+            else:
+                return 0
 
 
     @property
@@ -237,29 +278,33 @@ class Packet:
 
 
     def subpackets_0(self):
+        # the next 15 bits are a number that represents the total length in bits 
+        # of the sub-packets contained by this packet.
+
         packets = []
         packets_length = 0
         start_index = 22
-        min_length = 7
+        min_length = 11
         packet_length = min_length
 
         while True:
             value = self.translated[start_index:start_index+packet_length]
-            DEBUG_SUBPACKET and print(f'SUBPACKET=testing {value}')
+            DEBUG_SUBPACKET and print(f'{self}-SUBPACKET=testing {value}')
             packet = Packet(binary=value)
             if packet.valid:
-                DEBUG_SUBPACKET and print(f'SUBPACKET=value {value} is valid : start {start_index} length {packet_length} vs {len(self)}')
+                DEBUG_SUBPACKET and print(f'{self}-SUBPACKET=value {value} is valid : start {start_index} length {packet_length} vs {len(self)}')
                 packets.append(packet)
                 start_index += len(packet)
+                packet_length = min_length
                 packets_length+= len(packet)
-                if packets_length > self.subpacket_length:
+                if packets_length == self.subpacket_length:
                     break
 
             else:
-                DEBUG_SUBPACKET and print(f'SUBPACKET=value {value} is invalid')
+                DEBUG_SUBPACKET and print(f'{self}-SUBPACKET=value {value} is invalid remaining {self.translated[start_index:]}')
                 if not value:
                     break
-                elif start_index + packet_length > len(self) - 1:
+                elif start_index + packet_length >= len(self):
                     if int(value, 2) == 0:
                         break
                     else:
@@ -269,29 +314,29 @@ class Packet:
         return packets
 
     def subpackets_1(self):
+        # the next 11 bits are a number that represents
+        # the number of sub-packets immediately contained by this packet.
+
         packets = []
         start_index = 18
-        min_length = 7
+        min_length = 11
         packet_length = min_length
-        DEBUG_SUBPACKET_OPERATOR and print(f'SUBPACKET_OPERATOR=we want {self.subpacket_number} subpackets in {self}')
+        DEBUG_SUBPACKET_OPERATOR and print(f'{self}-SUBPACKET_OPERATOR=we want {self.subpacket_number} subpackets in {self} length:{len(self)}')
 
         while True:
-            if self.subpacket_number == 1:
-                value = self.translated[start_index:]
-            else:
-                value = self.translated[start_index:start_index+packet_length]
-            DEBUG_SUBPACKET_OPERATOR and print(f'SUBPACKET_OPERATOR=testing {value} [{start_index}:{start_index+packet_length}]')
+            value = self.translated[start_index:start_index+packet_length]
+            DEBUG_SUBPACKET_OPERATOR and print(f'{self}-SUBPACKET_OPERATOR=testing {value} [{start_index}:{start_index+packet_length}]')
             packet = Packet(binary=value)
             if packet.valid:
-                DEBUG_SUBPACKET_OPERATOR and print(f'SUBPACKET_OPERATOR=value {value} is valid : start {start_index} length {packet_length} vs {len(self)}')
+                DEBUG_SUBPACKET_OPERATOR and print(f'{self}-SUBPACKET_OPERATOR=value {value} is valid : start {start_index} length {packet_length} vs {len(self)}')
                 packets.append(packet)
                 start_index += len(value)
                 packet_length = min_length
-                DEBUG_SUBPACKET_OPERATOR and print(f'SUBPACKET_OPERATOR=we have {len(packets)} and want {self.subpacket_number}')
+                DEBUG_SUBPACKET_OPERATOR and print(f'{self}-SUBPACKET_OPERATOR=we have {len(packets)} and want {self.subpacket_number}')
                 if len(packets) == self.subpacket_number:
                     break
             else:
-                DEBUG_SUBPACKET_OPERATOR and print(f'SUBPACKET_OPERATOR=value {value} is invalid')
+                DEBUG_SUBPACKET_OPERATOR and print(f'{self}-SUBPACKET_OPERATOR=value {value} is invalid')
                 if start_index + packet_length > len(self):
                     break
                 else:
@@ -351,6 +396,25 @@ def test_part1():
     assert packet.subpackets[2].literal_value == 3
 
     packet = Packet('8A004A801A8002F478')
+    assert packet.is_operator
+    assert packet.version == 4
+    print(packet.subpackets)
+    assert len(packet.subpackets) == 1
+
+    subpacket = packet.subpackets[0]
+    assert subpacket.is_operator
+    assert subpacket.version == 1
+    assert len(subpacket.subpackets) == 1
+
+    subpacket = subpacket.subpackets[0]
+    assert subpacket.is_operator
+    assert subpacket.version == 5
+    assert len(subpacket.subpackets) == 1
+
+    subpacket = subpacket.subpackets[0]
+    assert subpacket.is_literal
+    assert subpacket.version == 6
+
     assert packet.version_sum == 16
     packet = Packet('620080001611562C8802118E34')
     assert packet.version_sum == 12
@@ -361,10 +425,29 @@ def test_part1():
 
 
 def test_part2():
-    data = test_data
-    result = None
-    print(f'test2 is {result}')
-    assert result == 25
+    packet = Packet('C200B40A82')
+    assert packet.value == 3
+
+    packet = Packet('04005AC33890')
+    assert packet.value == 54
+
+    packet = Packet('880086C3E88112')
+    assert packet.value == 7
+
+    packet = Packet('CE00C43D881120')
+    assert packet.value == 9
+
+    packet = Packet('D8005AC2A8F0')
+    assert packet.value == 1
+
+    packet = Packet('F600BC2D8F')
+    assert packet.value == 0
+
+    packet = Packet('9C005AC2F8F0')
+    assert packet.value == 0
+
+    packet = Packet('9C0141080250320F1802104A08')
+    assert packet.value == 1
 
 
 def part1():
@@ -376,11 +459,12 @@ def part1():
 
 def part2():
     data = load_data()
-    result = None
+    packet = Packet(data[0])
+    result = packet.value
     print(f'part2 is {result}')
 
 
-test_part1()
-part1()
-#test_part2()
-#part2()
+#test_part1()
+#part1()
+test_part2()
+part2()

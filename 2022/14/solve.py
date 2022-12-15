@@ -176,6 +176,7 @@ def solve_part2(data):
     grid = build_grid(data, part=2)
     while not grid.full:
         grid.iterate(part=2)
+    print(grid)
     return grid.sands
 
 
@@ -183,6 +184,7 @@ def solve_part1(data):
     grid = build_grid(data)
     while not grid.full:
         grid.iterate()
+    print(grid)
     return grid.sands
 
 

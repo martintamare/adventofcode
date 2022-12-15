@@ -85,6 +85,49 @@ class Grid:
                 else:
                     self.grid[test_c] = '#'
 
+    def apply_mask_with_range(self, sensor, beacon, max_range):
+        distance = abs(sensor[0] - beacon[0]) + abs(sensor[1] - beacon[1])
+        print(f'{sensor} {beacon} distance is {distance}')
+        has_beacon = False
+
+        for y_delta in range(-distance, distance+1):
+            if abs(sensor[1] + y_delta) > max_range:
+                continue
+            x_to_pad = distance-abs(y_delta)
+            delta = 2 * x_to_pad + 1
+            for x_delta in range(-x_to_pad, -x_to_pad+delta):
+                if y_delta == 0 and x_delta == 0:
+                    continue
+                test_c = (sensor[0] + x_delta, sensor[1] + y_delta)
+                if abs(test_c[0]) > max_range:
+                    continue
+
+                if test_c in self.grid:
+                    if self.grid[test_c] == '#':
+                        pass
+                    elif self.grid[test_c] == 'S':
+                        pass
+                    elif self.grid[test_c] != 'B':
+                        print(f'Weird {self.grid[test_c]} and {test_c}')
+                        print(self)
+                        exit(0)
+                    elif has_beacon:
+                        print('Two beacons ??')
+                        print(self)
+                        exit(0)
+                    else:
+                        has_beacon = True
+                else:
+                    self.grid[test_c] = '#'
+
+    def find_hidden_beacon(self, max_range):
+        for y in range(max_range + 1):
+            for x in range(max_range + 1):
+                c = (x, y)
+                if c not in self.grid:
+                    return c
+
+
     def apply_mask(self, sensor, beacon):
         distance = abs(sensor[0] - beacon[0]) + abs(sensor[1] - beacon[1])
         print(f'{sensor} {beacon} distance is {distance}')
@@ -143,8 +186,30 @@ def solve_part1(data, wanted_y):
     return count
 
 
-def solve_part2(data):
-    pass
+def solve_part2(data, max_range):
+    grid = Grid()
+    for line in data:
+        ok_values = list(filter(lambda x: '=' in x, line.split(' ')))
+
+        def keep_digits_only(s):
+            result = ''
+            for c in s:
+                if c in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-']:  # noqa
+                    result += c
+            return result
+
+        beacon_data = list(map(int, map(keep_digits_only, ok_values)))
+        sensor = (beacon_data[0], beacon_data[1])
+        beacon = (beacon_data[2], beacon_data[3])
+        grid.add_sensor(sensor)
+        grid.add_beacon(beacon)
+        grid.apply_mask_with_range(sensor, beacon, max_range)
+
+    beacon = grid.find_hidden_beacon(max_range)
+    print(f'found beacon at {beacon}')
+    print(grid)
+    exit(0)
+    return beacon[0] * 4000000 + beacon[1]
 
 
 def test_part1():
@@ -162,18 +227,18 @@ def part1():
 
 def test_part2():
     data = test_data
-    result = solve_part2(data)
+    result = solve_part2(data, 20)
     print(f'test2 is {result}')
-    assert result == 25
+    assert result == 56000011
 
 
 def part2():
     data = load_data()
-    result = solve_part2(data)
+    result = solve_part2(data, 4000000)
     print(f'part2 is {result}')
 
 
-test_part1()
-part1()
-#test_part2()
-#part2()
+# test_part1()
+# part1()
+test_part2()
+part2()

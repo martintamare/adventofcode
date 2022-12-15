@@ -12,33 +12,41 @@ def load_data():
     return data
 
 
+def solve_part1(data):
+    pass
+
+
+def solve_part2(data):
+    pass
+
+
 def test_part1():
     data = test_data
-    result = None
+    result = solve_part1(data)
     print(f'test1 is {result}')
-    assert result == 25
-
-
-def test_part2():
-    data = test_data
-    result = None
-    print(f'test2 is {result}')
     assert result == 25
 
 
 def part1():
     data = load_data()
-    result = None
+    result = solve_part1(data)
     print(f'part1 is {result}')
+
+
+def test_part2():
+    data = test_data
+    result = solve_part2(data)
+    print(f'test2 is {result}')
+    assert result == 25
 
 
 def part2():
     data = load_data()
-    result = None
+    result = solve_part2(data)
     print(f'part2 is {result}')
 
 
 test_part1()
-#part1()
+part1()
 #test_part2()
 #part2()

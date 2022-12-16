@@ -200,39 +200,34 @@ def solve_part1(data):
             next_path = None
             next_path_reward = None
 
-            for visit_index in range(1, len(to_visit_in_priority)):
-                to_visit = to_visit_in_priority[visit_index-1]
+            for visit_index in range(0, len(to_visit_in_priority)):
+                to_visit = to_visit_in_priority[visit_index]
                 if valves[to_visit].open:
                     continue
 
-                to_visit_first = to_visit_in_priority[visit_index-1]
-                to_visit_after = to_visit_in_priority[visit_index]
-
-                path_to_next = real_graph.a_star_algorithm(current, to_visit_first)
-                futur_path_to_next = path_to_next.copy()
-                if to_visit_after in to_visit_first:
-                    pass
-                else:
-                    path_to_second = real_graph.a_star_algorithm(to_visit_first, to_visit_after)
-                    path_to_next += path_to_second[1:]
-
+                path_to_next = real_graph.a_star_algorithm(current, to_visit)
                 path_reward = 0
                 path_visited = []
+                to_divided = 0
                 for valve_i in range(1, len(path_to_next)):
                     valve = path_to_next[valve_i]
                     if valve in path_visited:
                         continue
+                    if valves[valve].open:
+                        continue
                     else:
                         path_visited.append(valve)
                         number_of_time = len(path_to_next) - valve_i
+                        to_divided += number_of_time
                         path_reward += number_of_time * valves[valve].flow_rate
-                path_reward /= len(path_to_next)
+                if to_divided != 0:
+                    path_reward /= to_divided
 
                 if next_path_reward is None:
-                    next_path = futur_path_to_next
+                    next_path = path_to_next
                     next_path_reward = path_reward
                 elif next_path_reward < path_reward:
-                    next_path = futur_path_to_next
+                    next_path = path_to_next
                     next_path_reward = path_reward
                 print(f'path to {to_visit} is {path_to_next} reward {path_reward}')
 

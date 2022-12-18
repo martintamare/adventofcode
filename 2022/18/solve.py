@@ -186,9 +186,9 @@ def solve_part1(data, part=1):
     max_z = max(map(int, map(lambda x: x.split(',')[2], coordinates.keys())))
 
     graph = {}
-    for x in range(0, max_x + 2):
-        for y in range(0, max_y + 2):
-            for z in range(0, max_z + 2):
+    for x in range(-1, max_x + 2):
+        for y in range(-1, max_y + 2):
+            for z in range(-1, max_z + 2):
                 index = f'{x},{y},{z}'
                 neighbors = []
 
@@ -310,35 +310,52 @@ def solve_part1(data, part=1):
     for coordinate, point in coordinates.items():
         current += 1
         print(f'==== {coordinate} {current}/{total_coordinates}=====')
-        for x in range(point.x - 1, point.x + 2):
-            if x == point.x:
-                continue
-            test_index = f'{x},{point.y},{point.z}'
-            if test_index not in point.neigbors:
-                if part == 1:
-                    ok_coordinates.append(test_index)
-                elif check_if_point_can_reach_water(test_index):
+        if part == 1:
+            for x in range(point.x - 1, point.x + 2):
+                if x == point.x:
+                    continue
+                test_index = f'{x},{point.y},{point.z}'
+                if test_index not in point.neigbors:
                     ok_coordinates.append(test_index)
 
-        for y in range(point.y - 1, point.y + 2):
-            if y == point.y:
-                continue
-            test_index = f'{point.x},{y},{point.z}'
-            if test_index not in point.neigbors:
-                if part == 1:
-                    ok_coordinates.append(test_index)
-                elif check_if_point_can_reach_water(test_index):
+            for y in range(point.y - 1, point.y + 2):
+                if y == point.y:
+                    continue
+                test_index = f'{point.x},{y},{point.z}'
+                if test_index not in point.neigbors:
                     ok_coordinates.append(test_index)
 
-        for z in range(point.z - 1, point.z + 2):
-            if z == point.z:
-                continue
-            test_index = f'{point.x},{point.y},{z}'
-            if test_index not in point.neigbors:
-                if part == 1:
+            for z in range(point.z - 1, point.z + 2):
+                if z == point.z:
+                    continue
+                test_index = f'{point.x},{point.y},{z}'
+                if test_index not in point.neigbors:
                     ok_coordinates.append(test_index)
-                elif check_if_point_can_reach_water(test_index):
-                    ok_coordinates.append(test_index)
+        else:
+            for x in range(point.x - 1, point.x + 2):
+                if x == point.x:
+                    continue
+                test_index = f'{x},{point.y},{point.z}'
+                if test_index not in point.neigbors:
+                    if check_if_point_can_reach_water(test_index):
+                        ok_coordinates.append(test_index)
+
+            for y in range(point.y - 1, point.y + 2):
+                if y == point.y:
+                    continue
+                test_index = f'{point.x},{y},{point.z}'
+                if test_index not in point.neigbors:
+                    if check_if_point_can_reach_water(test_index):
+                        ok_coordinates.append(test_index)
+
+            for z in range(point.z - 1, point.z + 2):
+                if z == point.z:
+                    continue
+                test_index = f'{point.x},{point.y},{z}'
+                if test_index not in point.neigbors:
+                    if check_if_point_can_reach_water(test_index):
+                        ok_coordinates.append(test_index)
+
     return len(ok_coordinates)
 
 

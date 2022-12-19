@@ -33,34 +33,34 @@ def load_data():
 
 rocks = [
     [
-        [-1,0,1,2],
+        [2,3,4,5],
     ],
     [
-        [0],
-        [-1,0,1],
-        [0],
+        [3],
+        [2,3,4],
+        [3],
     ],
     [
-        [1],
-        [1],
-        [-1,0,1],
+        [4],
+        [4],
+        [2,3,4],
     ],
     [
-        [-1],
-        [-1],
-        [-1],
-        [-1],
+        [2],
+        [2],
+        [2],
+        [2],
     ],
     [
-        [-1,0],
-        [-1,0],
+        [2,3],
+        [2,3],
     ],
 ]
 
 class Grid:
     def __init__(self):
         self.occupied = [[True, True, True, True, True, True, True]]
-        self.current_rock_positions = None
+        self.current_rock_set = None
         self.current_rock_placed = False
         self.rocks_added = 0
 
@@ -68,23 +68,15 @@ class Grid:
     def get_tower_hash(self):
         line_to_check = 50
         hash_data = [0,0,0,0,0,0,0]
-        for y in range(min(0, self.height - line_to_check), self.height):
-            for x in range(-3,4):
-                if (x, y) in self.occupied:
+        for y in range(max(0, self.height - line_to_check), self.height):
+            for x in range(7):
+                if self.occupied[y][x]:
                     hash_data[x] = y - self.height
         return f'{hash_data}'
 
 
     def print_tower(self):
-        for y in reversed(range(self.height)):
-            line = self.occupied[y]
-            print_line = []
-            for x in range(len(line)):
-                if line[x]:
-                    print_line.append('#')
-                else:
-                    print_line.append(' ')
-            print(print_line)
+        print(self)
 
     def print_current_rocks(self):
         for y in reversed(range(len(self.current_rock_positions))):
@@ -97,17 +89,59 @@ class Grid:
                     print_line.append(' ')
             print(print_line)
 
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        data = []
+        max_y = self.height - 1
+        if self.current_rock_set:
+            max_y = max(max_y, max(map(lambda x: x[1], self.current_rock_set)))
+
+        for y in reversed(range(max_y+1)):
+            print_line = []
+            # If rocks
+            if y >= len(self.occupied):
+                for x in range(0, 7):
+                    if (x, y) in self.current_rock_set:
+                        print_line.append('@')
+                    else:
+                        print_line.append(' ')
+            else:
+                line = self.occupied[y]
+                for x in range(len(line)):
+                    if self.current_rock_set and (x, y) in self.current_rock_set:
+                        print_line.append('@')
+                    elif line[x]:
+                        print_line.append('#')
+                    else:
+                        print_line.append(' ')
+            data.append(f'{print_line}')
+        return '\n'.join(data)
+
 
     @property
     def height(self):
         return len(self.occupied)
 
+    @property
+    def result(self):
+        line_to_remove = 0
+        for y in reversed(range(max(self.height-3,0), self.height)):
+            line_to_test = self.occupied[y]
+            empty_line = sum(map(lambda x: 1 if x else 0, line_to_test)) == 0
+            if empty_line:
+                line_to_remove += 1
+
+        return self.height - 1 - line_to_remove
+
+
     def add_rock(self, rock):
         self.rocks_added += 1
         rock_positions = []
 
+        # Add new_line
         line_to_add = 3
-        self.print_tower()
         for y in reversed(range(max(self.height-3,0), self.height)):
             line_to_test = self.occupied[y]
             empty_line = sum(map(lambda x: 1 if x else 0, line_to_test)) == 0
@@ -120,24 +154,82 @@ class Grid:
                 rock_data.append(False)
             self.occupied.append(rock_data)
 
+        # Add new rock
+        rock_set = set()
         rock_height = len(rock)
-        for y in sorted(list(range(rock_height)), reverse=True):
+        for y in range(rock_height):
             rock_line = rock[y]
-            rock_data = []
-            for i in range(-3,4):
-                index = i+3
-                if i in rock_line:
-                    char = True
-                else:
-                    char = False
-                rock_data.append(char)
-            rock_positions.append(rock_data)
-
-        self.current_rock_positions = rock_positions
+            final_y_to_add = rock_height - y + self.height - 1
+            for x in rock_line:
+                rock_set.add((x, final_y_to_add))
+        self.current_rock_y = self.height - 1
+        self.current_rock_set = rock_set
         self.current_rock_placed = False
-        self.current_rock_height = self.height
 
     def move_current_rock(self, action):
+        if action == '>':
+            move_x = 1
+            # Max Length
+            can_move_x = max(map(lambda x: x[0] + move_x, self.current_rock_set)) <= 6
+        else:
+            move_x = -1
+            # Max Length
+            can_move_x = min(map(lambda x: x[0] + move_x, self.current_rock_set)) >= 0
+
+        # Move
+        if can_move_x:
+            # Check if occupied is blocking
+            can_move_x_2 = True
+            for elem in self.current_rock_set:
+                x = elem[0] + move_x
+                y = elem[1]
+                if y < len(self.occupied):
+                    if x >= 0 and x < 7:
+                        if self.occupied[y][x]:
+                            can_move_x_2 = False
+                            break
+            
+            if can_move_x_2:
+                new_set = set()
+                for elem in self.current_rock_set:
+                    new_elem = (elem[0] + move_x, elem[1])
+                    new_set.add(new_elem)
+                self.current_rock_set = new_set
+
+        # Going down
+        can_move_down = min(map(lambda x: x[1] - 1, self.current_rock_set)) > 0
+        if can_move_down:
+            can_move_down_2 = True
+            for elem in self.current_rock_set:
+                x = elem[0]
+                y = elem[1] -1
+                if y < len(self.occupied):
+                    if self.occupied[y][x]:
+                        can_move_down_2 = False
+                        break
+            can_move_down = can_move_down_2
+
+        if can_move_down:
+            new_set = set()
+            for elem in self.current_rock_set:
+                new_elem = (elem[0], elem[1] -1)
+                new_set.add(new_elem)
+            self.current_rock_set = new_set
+        else:
+            min_y = min(map(lambda x: x[1], self.current_rock_set))
+            max_y = max(map(lambda x: x[1], self.current_rock_set))
+            for y in range(min_y, max_y + 1):
+                if y >= len(self.occupied):
+                    self.occupied.append([False, False, False, False, False, False, False])
+
+            for elem in self.current_rock_set:
+                x = elem[0]
+                y = elem[1]
+                self.occupied[y][x] = True
+            self.current_rock_placed = True
+
+
+    def move_current_rock_old(self, action):
 
         # Jet move
         if action == '>':
@@ -237,7 +329,7 @@ class Grid:
             self.current_rock_placed = True
 
 
-def solve_part1(data, wanted_iteration):
+def solve_part1(data, wanted_iteration, part=1):
     grid = Grid()
     actions = data[0]
 
@@ -264,9 +356,8 @@ def solve_part1(data, wanted_iteration):
             grid.move_current_rock(action)
             action_i += 1
 
-        print(f'====Tower after {rocks_added} rocks added =====')
-        grid.print_tower()
-        input()
+        #print(f'====Tower after {rocks_added} rocks added =====')
+        #grid.print_tower()
         if not apply_smart:
             if rock_i > len(rocks):
                 if action_i > len(actions):
@@ -285,7 +376,7 @@ def solve_part1(data, wanted_iteration):
 
 
     print(f'{height_to_add} and backup {backup_height}')
-    return grid.height + backup_height
+    return grid.result + backup_height
 
 
 def solve_part2(data):
@@ -294,27 +385,28 @@ def solve_part2(data):
 
 def test_part1():
     data = test_data
-    result = solve_part1(data, 2022)
+    result = solve_part1(data, 2022, 1)
     print(f'test1 is {result}')
     assert result == 3068
 
 
 def part1():
     data = load_data()
-    result = solve_part1(data, 2022)
+    result = solve_part1(data, 2022, 1)
     print(f'part1 is {result}')
+    assert result == 3181
 
 
 def test_part2():
     data = test_data
-    result = solve_part1(data, 1000000000000)
+    result = solve_part1(data, 1000000000000, 2)
     print(f'test2 is {result}')
     assert result == 1514285714288
 
 
 def part2():
     data = load_data()
-    result = solve_part1(data, 1000000000000)
+    result = solve_part1(data, 1000000000000, 2)
     print(f'part2 is {result}')
 
 

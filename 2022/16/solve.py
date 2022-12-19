@@ -157,7 +157,6 @@ def solve_part1(data):
     valves = get_valves(data)
     graph = {k: v.neighbors for k, v in valves.items()}
 
-
     current = 'AA'
     pressure = 0
     visited = []
@@ -176,7 +175,6 @@ def solve_part1(data):
                 newpath = find_path(graph, node, end, path)
                 if newpath: return newpath
         return None
-
 
     i = 0
     while i < 30:
@@ -200,12 +198,17 @@ def solve_part1(data):
             next_path = None
             next_path_reward = None
 
+            calculated_path = {}
             for visit_index in range(0, len(to_visit_in_priority)):
                 to_visit = to_visit_in_priority[visit_index]
+                if to_visit == current:
+                    continue
                 if valves[to_visit].open:
                     continue
 
                 path_to_next = real_graph.a_star_algorithm(current, to_visit)
+                calculated_path[to_visit] = path_to_next
+
                 path_reward = 0
                 path_visited = []
                 to_divided = 0
@@ -220,16 +223,55 @@ def solve_part1(data):
                         number_of_time = len(path_to_next) - valve_i
                         to_divided += number_of_time
                         path_reward += number_of_time * valves[valve].flow_rate
+
                 if to_divided != 0:
                     path_reward /= to_divided
+                path_reward = int(path_reward)
 
                 if next_path_reward is None:
                     next_path = path_to_next
                     next_path_reward = path_reward
+                elif next_path_reward == path_reward:
+                    if len(path_to_next) < len(next_path):
+                        next_path = path_to_next
+                        next_path_reward = path_reward
+
                 elif next_path_reward < path_reward:
                     next_path = path_to_next
                     next_path_reward = path_reward
                 print(f'path to {to_visit} is {path_to_next} reward {path_reward}')
+
+            print(f'Will go to {next_path}')
+
+            # Now extraccheck
+            smaller = None
+            smaller_length = None
+            #for valve, valve_path in calculated_path.items():
+            #    if valve_path == next_path:
+            #        continue
+
+            #    if len(valve_path) >= len(next_path):
+            #        continue
+
+            #    is_subset = True
+            #    for index in range(len(valve_path)):
+            #        if valve_path[index] != next_path[index]:
+            #            is_subset = False
+            #            break
+
+            #    if is_subset:
+            #        print(f'Found a subset {valve_path}')
+            #        if smaller is None:
+            #            smaller = valve_path
+            #            smaller_length = len(valve_path)
+            #        elif smaller_length > len(valve_path):
+            #            smaller = valve_path
+            #            smaller_length = len(valve_path)
+
+            if smaller is not None:
+                print(f'But found a subset {valve_path} using it')
+                next_path = smaller
+
 
             path_to_next = next_path
             print(f'Will go to {next_path}')
@@ -248,7 +290,8 @@ def solve_part1(data):
                 current = path_to_next[-1]
                 print(f'Move to {current} using {path_to_next} so jump in time of {len(path_to_next) - 1}')
         print('')
-        input()
+        if i < 5:
+            input()
 
 
     return pressure

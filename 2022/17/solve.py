@@ -87,7 +87,8 @@ class Grid:
             print(print_line)
 
     def print_current_rocks(self):
-        for line in self.current_rock_positions:
+        for y in reversed(range(len(self.current_rock_positions))):
+            line = self.current_rock_positions[y]
             print_line = []
             for x in range(len(line)):
                 if line[x]:
@@ -106,20 +107,16 @@ class Grid:
         rock_positions = []
 
         line_to_add = 3
-        for y in range(1,4):
-            real_y = self.height - y
-            if real_y < 0 and real_y >= self.height:
-                continue
-            line_to_check = self.occupied[real_y]
-            empty_line = sum(map(lambda x: 1 if x else 0, line_to_check)) == 0
+        self.print_tower()
+        for y in reversed(range(max(self.height-3,0), self.height)):
+            line_to_test = self.occupied[y]
+            empty_line = sum(map(lambda x: 1 if x else 0, line_to_test)) == 0
             if empty_line:
                 line_to_add -= 1
-            else:
-                break
 
         for y in range(line_to_add):
             rock_data = []
-            for i in range(-3,4):
+            for i in range(7):
                 rock_data.append(False)
             self.occupied.append(rock_data)
 
@@ -202,6 +199,7 @@ class Grid:
                 continue
             for x in range(len(line)):
                 if line[x]:
+                    print(f'testing at {y},{x}')
                     if self.occupied[y][x]:
                         can_move_down = False
                         break
@@ -224,6 +222,9 @@ class Grid:
             self.print_tower()
             for y_delta in range(len(self.current_rock_positions)):
                 real_y = self.height - y_delta
+                print(f'real_y={real_y}')
+                if real_y > self.height - 1:
+                    self.occupied.append([False, False, False, False, False, False, False])
                 line_to_add = self.current_rock_positions[y_delta]
                 empty_line = sum(map(lambda x: 1 if x else 0, line_to_add)) == 0
                 if empty_line:

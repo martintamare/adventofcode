@@ -65,6 +65,18 @@ class Grid:
         self.rocks_added = 0
 
     @property
+    def get_tower_hash(self):
+        line_to_check = 50
+        hash_data = [0,0,0,0,0,0,0]
+        for y in range(min(0, self.height - line_to_check), self.height):
+            for x in range(-3,4):
+                if (x, y) in self.occupied:
+                    hash_data[x] = y - self.height
+        return f'{hash_data}'
+
+
+
+    @property
     def height(self):
         max_y = 0
         if len(self.occupied):
@@ -138,16 +150,21 @@ def solve_part1(data, wanted_iteration):
     grid = Grid()
     actions = data[0]
 
+    cache = {}
+
     rock_i = 0
     rocks_added = 0
     action_i = 0
+    height_to_add = 0
+    backup_height = 0
+    apply_smart = False
     while rocks_added < wanted_iteration:
         rock_to_add_index = rock_i % len(rocks)
         rock_to_add = rocks[rock_to_add_index]
         grid.add_rock(rock_to_add)
         rocks_added += 1
         rock_i += 1
-        if rocks_added % 10000 == 0:
+        if rocks_added % 100 == 0:
             print(f'added {rocks_added}')
 
         while not grid.current_rock_placed:
@@ -156,21 +173,25 @@ def solve_part1(data, wanted_iteration):
             grid.move_current_rock(action)
             action_i += 1
 
-        if action_i % len(actions) == 0:
-            if rock_i % len(rocks) == 0:
-                # Do I have another floor ?
-                for y in range(grid.height-5, grid.height):
-                    is_complete = True
-                    for x in range(-3,4):
-                        if (x,y) not in grid.occupied:
-                            is_complete = False
-                    if is_complete:
-                        print(f'new_floor at y={y}')
-                        print(f'rocks={self.rocks_added} height={self.height}')
-                        print('be smart with it')
-                        input()
+        if not apply_smart:
+            if rock_i > len(rocks):
+                if action_i > len(actions):
+                    tower_index = grid.get_tower_hash
+                    cache_index = f'{rock_to_add_index}_{action_index}_{tower_index}'
+                    if cache_index in cache:
+                        print(f'Do something smart at {rock_to_add_index}_{action_index}_{tower_index} {grid.height} {cache[cache_index]} {rocks_added}')
+                        delta_rocks = rocks_added - cache[cache_index]['rocks']
+                        print(delta_rocks)
+                        factor = ((wanted_iteration -rocks_added) // delta_rocks)
+                        rocks_added += factor * delta_rocks
+                        backup_height = factor * (grid.height - cache[cache_index]['height'])
+                        apply_smart = True
+                    else:
+                        cache[cache_index] = {'rocks': rocks_added, 'height': grid.height}
 
-    return grid.height
+
+    print(f'{height_to_add} and backup {backup_height}')
+    return grid.height + backup_height
 
 
 def solve_part2(data):

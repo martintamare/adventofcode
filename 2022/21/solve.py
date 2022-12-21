@@ -120,48 +120,74 @@ def solve_part2(data):
     me_value = 0
     best_value = None
     best_root = None
+    min_value = 3080000000000
+    max_value = 3090000000000
+    median_value = 0
     while not stop:
-        test_monkeys = deepcopy(monkeys)
-        test_monkeys['humn']['value'] = me_value
-        while 'value' not in test_monkeys['root']:
-            to_do_monkeys = filter(lambda x: can_yell(x, test_monkeys), test_monkeys.keys())
-            for monkey in to_do_monkeys:
-                value = compute_monkey_value(monkey, test_monkeys)
-                test_monkeys[monkey]['value'] = value
-        root_value = test_monkeys['root']['value']
-        print(f'With me={me_value} root={root_value}')
+        for me_value in [min_value, max_value, median_value]:
+            print(f'testing {me_value}')
+            test_monkeys = deepcopy(monkeys)
+            test_monkeys['humn']['value'] = me_value
+            while 'value' not in test_monkeys['root']:
+                to_do_monkeys = filter(lambda x: can_yell(x, test_monkeys), test_monkeys.keys())
+                for monkey in to_do_monkeys:
+                    value = compute_monkey_value(monkey, test_monkeys)
+                    test_monkeys[monkey]['value'] = value
+            root_value = test_monkeys['root']['value']
+            print(f'result is {root_value}')
+            if me_value == min_value:
+                min_value_result = root_value
+            elif me_value == max_value:
+                max_value_result = root_value
+            else:
+                median_result = root_value
 
-        if best_root is None:
-            best_root = abs(root_value)
-            best_value = me_value
+            if root_value == 0:
+                return me_value
+                stop = True
+                break
+
+        new_min_result = None
+        new_max_result = None
+        for result in [min_value_result, max_value_result, median_result]:
+            if result < 0:
+                if new_min_result is None:
+                    new_min_result = result
+                elif result > new_min_result:
+                    new_min_result = result
+            else:
+                if new_max_result is None:
+                    new_max_result = result
+                elif result < new_max_result:
+                    new_max_result = result
+
+        print(f'{min_value} {max_value} {median_value}')
+        print(f'{min_value_result} {max_value_result} {median_result}')
+        new_min = None
+        if new_min_result == min_value_result:
+            new_min = min_value
+        elif new_min_result == max_value_result:
+            new_min = max_value
         else:
-            if abs(root_value) < best_root:
-                print('New best')
-                best_root = abs(root_value)
-                best_value = me_value
+            new_min = median_value
 
-
-        delta = None
-        if previous is None:
-            previous = root_value
-            me_value += 1
-        elif current is None:
-            current = root_value
-            delta = current - previous
+        new_max = None
+        if new_max_result == max_value_result:
+            new_max = max_value
+        elif new_max_result == min_value_result:
+            new_max = min_value
         else:
-            previous = current
-            current = root_value
-            delta = current - previous
+            new_max = median_value
 
-        print(f'Root {best_root} at {best_value}')
+        print(f'{new_min} {new_max}')
+        if new_max == max_value and new_min == min_value:
+            print('FUCK')
+            input()
 
-        if root_value == 0:
-            return me_value
-            stop = True
-            break
-
-        me_value = int(input('Me : '))
-    pass
+        min_value = min(new_min, new_max)
+        max_value = max(new_max, new_min)
+        median_value = int((max_value + min_value)/2)
+        print(f'new_min={min_value} new_max={max_value} median={median_value}')
 
 
 def test_part1():
@@ -192,5 +218,5 @@ def part2():
 
 #test_part1()
 #part1()
-test_part2()
+#test_part2()
 part2()

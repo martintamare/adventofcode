@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import operator
+from copy import deepcopy
 
 test_data = [
     'root: pppw + sjmn',
@@ -86,6 +87,80 @@ def solve_part1(data):
 
 
 def solve_part2(data):
+
+    # Fix root
+    monkeys = build_monkeys(data)
+    monkeys['root']['operator'] = operator.sub
+
+    def can_yell(monkey, test_monkeys):
+        monkey_dict = test_monkeys[monkey]
+        if 'value' in monkey_dict:
+            return False
+        ok = True
+        if 'needs' in monkey_dict:
+            for need_monkey in monkey_dict['needs']:
+                if 'value' not in test_monkeys[need_monkey]:
+                    ok = False
+                    break
+        return ok
+
+    def compute_monkey_value(monkey, test_monkeys):
+        monkey_dict = test_monkeys[monkey]
+        v1 = monkey_dict['needs'][0]
+        v2 = monkey_dict['needs'][1]
+        v1 = test_monkeys[v1]['value']
+        v2 = test_monkeys[v2]['value']
+        value = monkey_dict['operator'](v1, v2)
+        return value
+
+
+    stop = False
+    previous = None
+    current = None
+    me_value = 0
+    best_value = None
+    best_root = None
+    while not stop:
+        test_monkeys = deepcopy(monkeys)
+        test_monkeys['humn']['value'] = me_value
+        while 'value' not in test_monkeys['root']:
+            to_do_monkeys = filter(lambda x: can_yell(x, test_monkeys), test_monkeys.keys())
+            for monkey in to_do_monkeys:
+                value = compute_monkey_value(monkey, test_monkeys)
+                test_monkeys[monkey]['value'] = value
+        root_value = test_monkeys['root']['value']
+        print(f'With me={me_value} root={root_value}')
+
+        if best_root is None:
+            best_root = abs(root_value)
+            best_value = me_value
+        else:
+            if abs(root_value) < best_root:
+                print('New best')
+                best_root = abs(root_value)
+                best_value = me_value
+
+
+        delta = None
+        if previous is None:
+            previous = root_value
+            me_value += 1
+        elif current is None:
+            current = root_value
+            delta = current - previous
+        else:
+            previous = current
+            current = root_value
+            delta = current - previous
+
+        print(f'Root {best_root} at {best_value}')
+
+        if root_value == 0:
+            return me_value
+            stop = True
+            break
+
+        me_value = int(input('Me : '))
     pass
 
 
@@ -106,7 +181,7 @@ def test_part2():
     data = test_data
     result = solve_part2(data)
     print(f'test2 is {result}')
-    assert result == 25
+    assert result == 301
 
 
 def part2():
@@ -115,7 +190,7 @@ def part2():
     print(f'part2 is {result}')
 
 
-test_part1()
-part1()
-#test_part2()
-#part2()
+#test_part1()
+#part1()
+test_part2()
+part2()

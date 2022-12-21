@@ -120,9 +120,10 @@ def solve_part2(data):
     me_value = 0
     best_value = None
     best_root = None
-    min_value = 3080000000000
-    max_value = 3090000000000
-    median_value = 0
+    min_value = 0
+    max_value = 400000000000000
+    median_value = int((max_value+min_value)/2)
+    median_result = None
     while not stop:
         for me_value in [min_value, max_value, median_value]:
             print(f'testing {me_value}')

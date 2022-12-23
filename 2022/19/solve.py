@@ -34,21 +34,6 @@ def solve_part1(data):
                 i += 3
             blueprint[line_splitted[1]] = definition
 
-    # Build ore base for all
-    for item in ['ore', 'clay', 'obsidian', 'geode']:
-        cost = 0
-        for subitem in ['ore', 'clay', 'obsidian', 'geode']:
-            if subitem in blueprint[item]:
-                if subitem == 'ore':
-                    cost += blueprint[item][subitem]
-                else:
-                    key = f'{subitem}_cost'
-                    if key not in blueprint:
-                        print('Jkdn,zkdn,azkdaz')
-                    else:
-                        cost += blueprint[key] * blueprint[item][subitem]
-        blueprint[f'{item}_cost'] = cost
-
     ore = 0
     clay = 0
     obsidian = 0
@@ -58,8 +43,7 @@ def solve_part1(data):
     obsidian_robot = 0
     geode_robot = 0
     data_max = {'geode': 0}
-    geodes = [0 for x in range(26)]
-    escape = [0]
+    geodes = list(map(lambda x: 0, range(25)))
     time_cache = {}
     cache = {}
 
@@ -80,25 +64,23 @@ def solve_part1(data):
     def iterate(i, ore=0, clay=0, obsidian=0, geode=0,
                 ore_robot=1, clay_robot=0, obsidian_robot=0, geode_robot=0):
 
-        ## Smart out based on max
-        #if geode < geodes[i]:
-        #    print('return due to smart out')
-        #    return geode
-        #elif geode > geodes[i]:
-        #    geodes[i] = geode
+        if geode > geodes[i]:
+            geodes[i] = geode
+        elif geode < geodes[i]:
+            return geode
 
         # Iteration max
         if i == 24:
             if data_max['geode'] is None:
                 data_max['geode'] = geode
-                #print(f'new_max is {geode}')
+                print(f'new_max is {geode}')
             elif geode > data_max['geode']:
                 data_max['geode'] = geode
-                #print(f'new_max is {geode}')
+                print(f'new_max is {geode}')
             return geode
 
         # Add smart break according to iteration we can estimate creation or geode or not ?
-        cache_index = f'{ore}_{clay}_{obsidian}_{geode}_{ore_robot}_{clay_robot}_{obsidian_robot}_{geode_robot}'
+        cache_index = f'{i}_{ore}_{clay}_{obsidian}_{geode}_{ore_robot}_{clay_robot}_{obsidian_robot}_{geode_robot}'
         time_to_build_new_geode_robot = None
         if cache_index in time_cache:
             time_to_build_new_geode_robot = time_cache[cache_index]
@@ -138,16 +120,14 @@ def solve_part1(data):
 
         if False:
         #if 24 - i < time_to_build_new_geode_robot:
-            # geode += (24 -i) * geode_robot
-            # if data_max['geode'] is None:
-            #     data_max['geode'] = geode
-            #     print(f'new_max is {geode}')
-            # elif geode > data_max['geode']:
-            #     data_max['geode'] = geode
-            #     print(f'new_max is {geode}')
-            # print('return due to cache')
-            # return geode
-            pass
+            geode += (24 -i) * geode_robot
+            if data_max['geode'] is None:
+                data_max['geode'] = geode
+                print(f'new_max is {geode}')
+            elif geode > data_max['geode']:
+                data_max['geode'] = geode
+                print(f'new_max is {geode}')
+            return geode
         else:
             if can_build('geode', ore=ore, clay=clay, obsidian=obsidian, geode=geode):
                 robot_item = 'geode'
@@ -168,80 +148,79 @@ def solve_part1(data):
                     if item in blueprint[robot_item]:
                         new_items[item] -= blueprint[robot_item][item]
 
-                geode += (24 -i) * (geode_robot + 1)
+                for x in range(24-i, 24+1):
+                    geode += geode_robot
+                    if geode > geodes[x]:
+                        geodes[x] = geode
+
                 if data_max['geode'] is None:
                     data_max['geode'] = geode
-                    #print(f'new_max is {geode}')
+                    print(f'new_max is {geode}')
                 elif geode > data_max['geode']:
                     data_max['geode'] = geode
-                    #print(f'new_max is {geode}')
+                    print(f'new_max is {geode}')
                 return geode
                 # iterate(i+1, **new_items, **robot_items)
             else:
-                res = None
-                maximum = None
-
-                new_items = {
-                    'ore': ore + ore_robot,
-                    'clay': clay + clay_robot,
-                    'obsidian': obsidian + obsidian_robot,
-                    'geode': geode + geode_robot,
-                }
-                robot_items = {
-                    'ore_robot': ore_robot,
-                    'clay_robot': clay_robot,
-                    'obsidian_robot': obsidian_robot,
-                    'geode_robot': geode_robot,
-                }
-                cache_index = f'{ore}_{clay}_{obsidian}_{geode}_{ore_robot}_{clay_robot}_{obsidian_robot}_{geode_robot}_normal'
+                cache_index = f'{i+1}_{ore+ore_robot}_{clay+clay_robot}_{obsidian+obsidian_robot}_{geode+geode_robot}_{ore_robot}_{clay_robot}_{obsidian_robot}_{geode_robot}'
                 if cache_index in cache:
-                    res = cache[cache_index]
+                    maximum = cache[cache_index]
                 else:
-                    res = iterate(i+1, **new_items, **robot_items)
-                    cache[cache_index] = res
+                    res = None
+                    maximum = None
 
-                if maximum is None:
-                    maximum = res
-                elif res > maximum:
-                    maximum = res
-                for robot_item in ['obsidian', 'clay', 'ore']:
-                    if can_build(robot_item, ore=ore, clay=clay, obsidian=obsidian, geode=geode):
-                        new_items = {
-                            'ore': ore + ore_robot,
-                            'clay': clay + clay_robot,
-                            'obsidian': obsidian + obsidian_robot,
-                            'geode': geode + geode_robot,
-                        }
-                        robot_items = {
-                            'ore_robot': ore_robot,
-                            'clay_robot': clay_robot,
-                            'obsidian_robot': obsidian_robot,
-                            'geode_robot': geode_robot,
-                        }
-                        robot_items[f'{robot_item}_robot'] += 1
-                        for item in ['ore', 'clay', 'obsidian', 'geode']:
-                            if item in blueprint[robot_item]:
-                                new_items[item] -= blueprint[robot_item][item]
+                    new_items = {
+                        'ore': ore + ore_robot,
+                        'clay': clay + clay_robot,
+                        'obsidian': obsidian + obsidian_robot,
+                        'geode': geode + geode_robot,
+                    }
+                    robot_items = {
+                        'ore_robot': ore_robot,
+                        'clay_robot': clay_robot,
+                        'obsidian_robot': obsidian_robot,
+                        'geode_robot': geode_robot,
+                    }
+                    cache_index = f'{i+1}_{ore+ore_robot}_{clay+clay_robot}_{obsidian+obsidian_robot}_{geode+geode_robot}_{ore_robot}_{clay_robot}_{obsidian_robot}_{geode_robot}_normal'
+                    if cache_index in cache:
+                        res = cache[cache_index]
+                    else:
+                        res = iterate(i+1, **new_items, **robot_items)
+                    if maximum is None:
+                        maximum = res
+                    elif res > maximum:
+                        maximum = res
 
-                        ore = new_items['ore']
-                        clay = new_items['clay']
-                        obsidian = new_items['obsidian']
-                        geode = new_items['geode']
-                        ore_robot = robot_items['ore_robot']
-                        clay_robot = robot_items['clay_robot']
-                        obsidian_robot = robot_items['obsidian_robot']
-                        geode_robot = robot_items['geode_robot']
-                        cache_index = f'{ore}_{clay}_{obsidian}_{geode}_{ore_robot}_{clay_robot}_{obsidian_robot}_{geode_robot}_{robot_item}'
-                        if cache_index in cache:
-                            res = cache[cache_index]
-                        else:
+                    for robot_item in ['obsidian', 'clay', 'ore']:
+                        if can_build(robot_item, ore=ore, clay=clay, obsidian=obsidian, geode=geode):
+                            new_items = {
+                                'ore': ore + ore_robot,
+                                'clay': clay + clay_robot,
+                                'obsidian': obsidian + obsidian_robot,
+                                'geode': geode + geode_robot,
+                            }
+                            robot_items = {
+                                'ore_robot': ore_robot,
+                                'clay_robot': clay_robot,
+                                'obsidian_robot': obsidian_robot,
+                                'geode_robot': geode_robot,
+                            }
+                            robot_items[f'{robot_item}_robot'] += 1
+                            for item in ['ore', 'clay', 'obsidian', 'geode']:
+                                if item in blueprint[robot_item]:
+                                    new_items[item] -= blueprint[robot_item][item]
+
+                            cache_index = f'{i+1}_{new_items["ore"]}_{new_items["clay"]}_{new_items["obsidian"]}_{new_items["geode"]}_{robot_items["ore_robot"]}_{robot_items["clay_robot"]}_{robot_items["obsidian_robot"]}_{robot_items["geode_robot"]}_{robot_item}'
+                            if cache_index in cache:
+                                res = cache[cache_index]
+                            else:
+                                res = iterate(i+1, **new_items, **robot_items)
                             res = iterate(i+1, **new_items, **robot_items)
-                            cache[cache_index] = res
-
-                        if maximum is None:
-                            maximum = res
-                        elif res > maximum:
-                            maximum = res
+                            if maximum is None:
+                                maximum = res
+                            elif res > maximum:
+                                maximum = res
+                    cache[cache_index] = maximum
                 return maximum
 
     test = iterate(0)
@@ -275,6 +254,7 @@ def part1():
         print(f'Blueprint {index+1} is {b_result}')
         result += (index+1) * b_result
     assert result < 3085
+    assert result > 706
     print(f'part1 is {result}')
 
 

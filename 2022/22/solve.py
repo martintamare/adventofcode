@@ -32,33 +32,38 @@ class Cube:
     def __init__(self, len_x, len_y, data, cube_length):
         self.faces = []
         self.current_point = None
-        self.current_face = 1
+        self.current_face = 0
         self.current_vector = (1,0)
         self.len_x = len_x
         self.len_y = len_y
         self.cube_length = cube_length
-        self.cube_padding = [
-            (2,0),
-            (0,1),
-            (1,1),
-            (2,1),
-            (2,2),
-            (3,2),
-        ]
 
-        self.cube_ranges = [
-                (range(2*cube_length, 3*cube_length), range(0*cube_length, 1*cube_length)),
-                (range(0*cube_length, 1*cube_length), range(1*cube_length, 2*cube_length)),
-                (range(1*cube_length, 2*cube_length), range(1*cube_length, 2*cube_length)),
-                (range(2*cube_length, 3*cube_length), range(1*cube_length, 2*cube_length)),
-                (range(2*cube_length, 3*cube_length), range(2*cube_length, 3*cube_length)),
-                (range(3*cube_length, 4*cube_length), range(2*cube_length, 3*cube_length)),
-        ]
+        # Holy crap test is not the same cube ...
+        if cube_length == 4:
+            self.cube_padding = [
+                (2,0),
+                (0,1),
+                (1,1),
+                (2,1),
+                (2,2),
+                (3,2),
+            ]
 
-        for r in self.cube_ranges:
+        else:
+            self.cube_padding = [
+                (1,0),
+                (2,0),
+                (1,1),
+                (0,2),
+                (1,2),
+                (0,3),
+            ]
+        self.cube_ranges = list(map(lambda x: (range(x[0]*cube_length, (x[0]+1)*cube_length), range(x[1]*cube_length, (x[1]+1)*cube_length)), self.cube_padding))
+
+        for i in range(len(self.cube_ranges)):
+            r = self.cube_ranges[i]
             y_range = r[1]
             x_range = r[0]
-
             cube_face = []
             for y in y_range:
                 line = data[y]
@@ -66,7 +71,7 @@ class Cube:
                 for x in x_range:
                     if self.current_point is None:
                         if line[x] == '.':
-                            self.current_point = (x,y)
+                            self.current_point = (x-2*self.cube_length,y)
                     grid_line.append(line[x])
                 cube_face.append(grid_line)
             self.faces.append(cube_face)
@@ -74,6 +79,9 @@ class Cube:
 
 
     def __str__(self):
+        return self.draw(self.faces)
+
+    def draw(self, to_print):
         data = []
         for y in range(0, self.cube_length):
             line = []
@@ -85,7 +93,7 @@ class Cube:
                 x_cube_range = self.cube_ranges[face_index][0]
                 if x in x_cube_range:
                     padded_x = x - x_to_pad
-                    char = self.faces[face_index][y][padded_x]
+                    char = to_print[face_index][y][padded_x]
                 else:
                     char = ' '
                 line.append(char)
@@ -104,7 +112,7 @@ class Cube:
                 if x in x_cube_range:
                     padded_x = x - x_to_pad
                     padded_y = y - y_to_pad
-                    char = self.faces[face_index][padded_y][padded_x]
+                    char = to_print[face_index][padded_y][padded_x]
                 else:
                     char = ' '
                 line.append(char)
@@ -118,7 +126,7 @@ class Cube:
                 if x in x_cube_range:
                     padded_x = x - x_to_pad
                     padded_y = y - y_to_pad
-                    char = self.faces[face_index][padded_y][padded_x]
+                    char = to_print[face_index][padded_y][padded_x]
                 else:
                     char = ' '
                 line.append(char)
@@ -132,7 +140,7 @@ class Cube:
                 if x in x_cube_range:
                     padded_x = x - x_to_pad
                     padded_y = y - y_to_pad
-                    char = self.faces[face_index][padded_y][padded_x]
+                    char = to_print[face_index][padded_y][padded_x]
                 else:
                     char = ' '
                 line.append(char)
@@ -153,7 +161,7 @@ class Cube:
                 if x in x_cube_range:
                     padded_x = x - x_to_pad
                     padded_y = y - y_to_pad
-                    char = self.faces[face_index][padded_y][padded_x]
+                    char = to_print[face_index][padded_y][padded_x]
                 else:
                     char = ' '
                 line.append(char)
@@ -167,7 +175,7 @@ class Cube:
                 if x in x_cube_range:
                     padded_x = x - x_to_pad
                     padded_y = y - y_to_pad
-                    char = self.faces[face_index][padded_y][padded_x]
+                    char = to_print[face_index][padded_y][padded_x]
                 else:
                     char = ' '
                 line.append(char)
@@ -177,10 +185,7 @@ class Cube:
 
     @property
     def paths(self):
-        data = []
-        for line in self.path:
-            data.append(''.join(line))
-        return '\n'.join(data)
+        return self.draw(self.path)
 
     @property
     def current_move(self):
@@ -202,20 +207,135 @@ class Cube:
         elif self.current_vector == (0,1):
             return 1
         elif self.current_vector == (0,-1):
-            return 4
+            return 3
 
-    def next_point(self, cur_x, cur_y):
-        while True:
-            move_x, move_y = self.current_vector
-            cur_x = (cur_x + move_x) % self.len_x
-            cur_y = (cur_y + move_y) % self.len_y
-            test = self.grid[cur_y][cur_x]
-            if test == ' ':
-                continue
-            elif test == '#':
-                return None
-            elif test == '.':
-                return (cur_x, cur_y)
+    def next_point(self):
+        move_x, move_y = self.current_vector
+        x, y = self.current_point
+        cur_face = self.current_face
+        max_index = self.cube_length - 1
+
+        cur_x = x + move_x
+        cur_y = y + move_y
+
+        if self.cube_length == 4:
+            if cur_x >= self.cube_length:
+                # x+
+                if cur_face == 0:
+                    return ((5, (-1, 0)), (max_index, max_index-y))
+                elif cur_face == 1:
+                    return ((2, (1, 0)), (0, y))
+                elif cur_face == 2:
+                    return ((3, (1, 0)), (0, y))
+                elif cur_face == 3:
+                    return ((5, (0, 1)), (max_index-y, 0))
+                elif cur_face == 4:
+                    return ((5, (1, 0)), (0, y))
+                elif cur_face == 5:
+                    return ((0, (-1, 0)), (max_index, max_index-y))
+            elif cur_x < 0:
+                # x-
+                if cur_face == 0:
+                    return ((2, (0, 1)), (y, 0))
+                elif cur_face == 1:
+                    return ((5, (0, 1)), (max_index-y, max_index))
+                elif cur_face == 2:
+                    return ((1, (-1, 0)), (max_index, y))
+                elif cur_face == 3:
+                    return ((2, (-1, 0)), (max_index, y))
+                elif cur_face == 4:
+                    return ((2, (0, -1)), (max_index-y, max_index))
+                elif cur_face == 5:
+                    return ((4, (-1, 0)), (max_index, y))
+            elif cur_y >= self.cube_length:
+                # y+
+                if cur_face == 0:
+                    return ((3, (0, 1)), (x, 0))
+                elif cur_face == 1:
+                    return ((4, (0, -1)), (max_index-x, max_index))
+                elif cur_face == 2:
+                    return ((4, (1, 0)), (0, max_index-x))
+                elif cur_face == 3:
+                    return ((4, (0, 1)), (x, 0))
+                elif cur_face == 4:
+                    return ((1, (0, -1)), (max_index-x, max_index))
+                elif cur_face == 5:
+                    return ((1, (1, 0)), (0, max_index-x))
+            elif cur_y < 0:
+                # y-
+                if cur_face == 0:
+                    return ((1, (0, 1)), (max_index-x, 0))
+                elif cur_face == 1:
+                    return ((0, (0, 1)), (max_index-x, 0))
+                elif cur_face == 2:
+                    return ((0, (1, 0)), (0, x))
+                elif cur_face == 3:
+                    return ((0, (0, -1)), (x, max_index))
+                elif cur_face == 4:
+                    return ((3, (0, -1)), (x, max_index))
+                elif cur_face == 5:
+                    return ((3, (-1, 0)), (max_index, max_index-x))
+            else:
+                return ((cur_face, self.current_vector), (cur_x, cur_y))
+        else:
+            if cur_x >= self.cube_length:
+                # x+
+                if cur_face == 0:
+                    return ((1, (1, 0)), (x, 0))
+                elif cur_face == 1:
+                    return ((4, (-1, 0)), (max_index, max_index-y))
+                elif cur_face == 2:
+                    return ((1, (0, -1)), (y, max_index))
+                elif cur_face == 3:
+                    return ((4, (1, 0)), (x, 0))
+                elif cur_face == 4:
+                    return ((1, (-1, 0)), (max_index, max_index-y))
+                elif cur_face == 5:
+                    return ((4, (0, -1)), (y, max_index))
+            elif cur_x < 0:
+                # x-
+                if cur_face == 0:
+                    return ((3, (1, 0)), (0, max_index-y))
+                elif cur_face == 1:
+                    return ((0, (-1, 0)), (max_index, y))
+                elif cur_face == 2:
+                    return ((3, (0, 1)), (y, 0))
+                elif cur_face == 3:
+                    return ((0, (1, 0)), (0, max_index-y))
+                elif cur_face == 4:
+                    return ((3, (-1, 0)), (max_index, y))
+                elif cur_face == 5:
+                    return ((0, (0, 1)), (y, 0))
+            elif cur_y >= self.cube_length:
+                # y+
+                if cur_face == 0:
+                    return ((2, (0, 1)), (x, 0))
+                elif cur_face == 1:
+                    return ((2, (-1, 0)), (max_index, x))
+                elif cur_face == 2:
+                    return ((4, (0, 1)), (x, 0))
+                elif cur_face == 3:
+                    return ((5, (0, 1)), (x, 0))
+                elif cur_face == 4:
+                    return ((5, (-1, 0)), (max_index, x))
+                elif cur_face == 5:
+                    return ((1, (0, 1)), (x ,0))
+            elif cur_y < 0:
+                # y-
+                if cur_face == 0:
+                    return ((5, (1, 0)), (0, x))
+                elif cur_face == 1:
+                    return ((5, (0, -1)), (x, max_index))
+                elif cur_face == 2:
+                    return ((0, (0, -1)), (x, max_index))
+                elif cur_face == 3:
+                    return ((2, (1, 0)), (0, x))
+                elif cur_face == 4:
+                    return ((2, (0, -1)), (x, max_index))
+                elif cur_face == 5:
+                    return ((3, (0, -1)), (x, max_index))
+            else:
+                return ((cur_face, self.current_vector), (cur_x, cur_y))
 
 
     def move(self, instruction):
@@ -224,22 +344,23 @@ class Cube:
         if mode == 'move':
             for l in range(data):
                 cur_x, cur_y = self.current_point
-                self.path[cur_y][cur_x] = self.current_move
-                move_x, move_y = self.current_vector
-                test_x = (cur_x + move_x) % self.len_x
-                test_y = (cur_y + move_y) % self.len_y
+                cur_face = self.current_face
+                self.path[cur_face][cur_y][cur_x] = self.current_move
 
-                test = self.grid[test_y][test_x]
-                if test == '.':
-                    self.current_point = (test_x, test_y)
-                elif test == '#':
+                new_point = self.next_point()
+                if new_point is None:
                     break
-                elif test == ' ':
-                    new_point = self.next_point(cur_x, cur_y)
-                    if new_point is None:
+                else:
+                    new_point_face, new_point_vector = new_point[0]
+                    new_point_x, new_point_y = new_point[1]
+
+                    test = self.faces[new_point_face][new_point_y][new_point_x]
+                    if test == '.':
+                        self.current_point = (new_point_x, new_point_y)
+                        self.current_face = new_point_face
+                        self.current_vector = new_point_vector
+                    elif test == '#':
                         break
-                    else:
-                        self.current_point = new_point
         else:
             if self.current_vector == (1,0):
                 # '>'
@@ -451,8 +572,6 @@ def solve_part2(data, cube_length=4):
     grid_x = max(map(lambda x: len(x), grid_data))
     grid_y = len(grid_data)
     grid = Cube(grid_x, grid_y, grid_data, cube_length)
-    print(grid)
-    exit(0)
 
     instructions = []
     current_instruction = ''
@@ -478,11 +597,15 @@ def solve_part2(data, cube_length=4):
 
     for instruction in instructions:
         grid.move(instruction)
+    print(grid.paths)
 
     result_x, result_y = grid.current_point
-    result_x += 1
-    result_y += 1
+    face_index = grid.current_face
+    x_to_pad, y_to_pad = grid.cube_padding[face_index]
+    result_x += 1 + x_to_pad * cube_length
+    result_y += 1 + y_to_pad * cube_length
     facing_score = grid.facing_score
+    print(f'Point is at {result_x},{result_y} and facing is {facing_score}')
     return 1000 * result_y + 4 * result_x + facing_score
     pass
 
@@ -503,18 +626,20 @@ def part1():
 
 def test_part2():
     data = test_data
-    result = solve_part2(data)
+    result = solve_part2(data, 4)
     print(f'test2 is {result}')
     assert result == 5031
 
 
 def part2():
     data = load_data()
-    result = solve_part2(data)
+    result = solve_part2(data, 50)
     print(f'part2 is {result}')
+    assert result != 79247
+    assert result != 119371
 
 
 #test_part1()
 #part1()
 test_part2()
-#part2()
+part2()

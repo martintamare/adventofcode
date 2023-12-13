@@ -16,18 +16,6 @@ test_data = [
     '#####.##.',
     '..##..###',
     '#....#..#',
-    '',
-    '##..#.#..##',
-    '###...#....',
-    '##.##.##...',
-    '....###..##',
-    '####..###..',
-    '##.####....',
-    '...####.###',
-    '###...##...',
-    '##...#..###',
-    '##...#.....',
-    '.##..##.###',
 ]
 
 
@@ -51,8 +39,15 @@ class Case:
     def __eq__(self, other):
         return self.value == other.value
 
+    def invert(self):
+        if self.value == '.':
+            return '#'
+        else:
+            return '.'
+
 class Land:
     def __init__(self, data):
+        self.data = data
         self.matrix = []
 
         for row, line in enumerate(data):
@@ -76,35 +71,64 @@ class Land:
         return len(self.matrix[0])
 
     @property
-    def reflection(self):
-        print(self)
+    def iterations(self):
+        new_lands = []
+        for row in self.matrix:
+            for cell in row:
+                new_data = self.data.copy()
+                row = cell.row
+                col = cell.col
+                new_value = cell.invert()
+                new_row = list(new_data[row])
+                new_row[col] = new_value
+                new_data[row] = ''.join(new_row)
+                test = Land(new_data)
+                new_lands.append(test)
+        return new_lands
+
+    def reflection(self, should_not_match=None):
+        results = self.real_reflection(should_not_match)
+        self.reflections = results
+
+        if should_not_match is None:
+            return list(results)[0]
+        else:
+            print(results)
+            print(should_not_match)
+            test = results.difference(should_not_match)
+            print(test)
+            if len(test) == 1:
+                return list(test)[0]
+            elif len(test) == 0:
+                return None
+            else:
+                print(test)
+                exit(0)
+
+
+    def real_reflection(self, should_not_match=None):
+        results = set()
+
         row_match = None
         row_match_index = None
         for w_size in range(1, (self.rows // 2) + 1):
-            print(f"windows size = {w_size}")
-            # 0:w_size to w_size:w_size+w_size
-            print("testing begining")
             match = True
             match_index = None
             for index in range(w_size):
                 source_index = index
                 destination_index = 2 * w_size - index - 1
-                print(f"testing row {source_index} vs {destination_index}")
                 source_row = self.matrix[source_index]
                 destination_row = self.matrix[destination_index]
                 if source_row != destination_row:
-                    print("match not")
                     match = False
                     break
                 else:
-                    print("match OKKKKKKKKKKKKKKKKKKKKK")
                     match_index = source_index + 1
             if match:
-                print("Match detected at {match_index}")
                 row_match = True
                 row_match_index = match_index
-                continue
-
+                result = match_index * 100
+                results.add(result)
 
             match = True
             for index in range(w_size):
@@ -112,51 +136,40 @@ class Land:
                 destination_index = 2 * w_size - index - 1
                 end_source_index = self.rows - destination_index - 1
                 end_destination_index = self.rows - source_index - 1
-                print(f"testing row {end_source_index} vs {end_destination_index}")
                 source_row = self.matrix[end_source_index]
                 destination_row = self.matrix[end_destination_index]
                 if source_row != destination_row:
-                    print("match not")
                     match = False
                     break
                 else:
                     match_index = end_source_index + 1
             if match:
-                print(f"Match detected at {match_index}")
                 row_match = True
                 row_match_index = match_index
+                result = match_index * 100
+                results.add(result)
 
-        if row_match:
-            print(f"Match at {row_match_index=}")
-            return row_match_index * 100
 
         column_match = None
         column_match_index = None
         for w_size in range(1, (self.columns // 2) + 1):
-            print(f"windows size = {w_size}")
-            # 0:w_size to w_size:w_size+w_size
-            print("testing begining")
             match = True
             match_index = None
             for index in range(w_size):
                 source_index = index
                 destination_index = 2 * w_size - index - 1
-                print(f"testing column {source_index} vs {destination_index}")
                 source_column = list(map(lambda x: x[source_index], self.matrix))
                 destination_column = list(map(lambda x: x[destination_index], self.matrix))
                 if source_column != destination_column:
-                    print("match not")
                     match = False
                     break
                 else:
-                    print("match OKKKKKKKKKKKKKKKKKKKKK")
                     match_index = source_index + 1
             if match:
-                print("Match detected at {match_index}")
                 column_match = True
                 column_match_index = match_index
-                continue
-
+                result = match_index
+                results.add(result)
 
             match = True
             for index in range(w_size):
@@ -164,30 +177,23 @@ class Land:
                 destination_index = 2 * w_size - index - 1
                 end_source_index = self.columns - destination_index - 1
                 end_destination_index = self.columns - source_index - 1
-                print(f"testing column {end_source_index} vs {end_destination_index}")
                 source_column = list(map(lambda x: x[end_source_index], self.matrix))
                 destination_column = list(map(lambda x: x[end_destination_index], self.matrix))
                 if source_column != destination_column:
-                    print("match not")
                     match = False
                     break
                 else:
                     match_index = end_source_index + 1
             if match:
-                print(f"Match detected at {match_index}")
                 column_match = True
                 column_match_index = match_index
+                result = match_index
+                results.add(result)
 
-        if column_match:
-            print(f"Match at {column_match_index=}")
-            return column_match_index
-
-        print(self)
-        print("You not come here")
-        exit(0)
+        return results
 
 
-def solve_part1(data):
+def load_lands(data):
     lands = []
     while len(data):
         land = []
@@ -200,40 +206,59 @@ def solve_part1(data):
                 break
         obj = Land(land)
         lands.append(Land(land))
+    return lands
 
-    return sum(map(lambda x: x.reflection, lands))
+
+def solve_part1(data):
+    lands = load_lands(data)
+    return sum(map(lambda x: x.reflection(), lands))
 
 def solve_part2(data):
-    pass
-
+    lands = load_lands(data)
+    ok_lands = []
+    for land in lands:
+        current_reflection = land.reflection()
+        assert current_reflection > 0
+        should_not_match = land.reflections
+        for test_land in land.iterations:
+            new_reflection = test_land.reflection(should_not_match)
+            if new_reflection is not None:
+                ok_lands.append(new_reflection)
+                break
+    return sum(ok_lands)
 
 def test_part1():
-    data = test_data
+    data = test_data.copy()
     result = solve_part1(data)
     print(f'test1 is {result}')
-    assert result == 415
+    assert result == 405
 
 
 def part1():
     data = load_data()
+    data = data.copy()
     result = solve_part1(data)
     print(f'part1 is {result}')
+    assert result == 33735
 
 
 def test_part2():
-    data = test_data
+    data = test_data.copy()
     result = solve_part2(data)
     print(f'test2 is {result}')
-    assert result == 25
+    assert result == 400
 
 
 def part2():
     data = load_data()
+    data = data.copy()
     result = solve_part2(data)
     print(f'part2 is {result}')
+    assert result > 32611
+    assert result < 53228
 
 
 test_part1()
 part1()
-#test_part2()
-#part2()
+test_part2()
+part2()

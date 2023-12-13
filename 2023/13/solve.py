@@ -82,33 +82,9 @@ class Land:
                 new_row = list(new_data[row])
                 new_row[col] = new_value
                 new_data[row] = ''.join(new_row)
-                test = Land(new_data)
-                new_lands.append(test)
-        return new_lands
+                yield Land(new_data)
 
     def reflection(self, should_not_match=None):
-        results = self.real_reflection(should_not_match)
-        self.reflections = results
-
-        if should_not_match is None:
-            return list(results)[0]
-        else:
-            print(results)
-            print(should_not_match)
-            test = results.difference(should_not_match)
-            print(test)
-            if len(test) == 1:
-                return list(test)[0]
-            elif len(test) == 0:
-                return None
-            else:
-                print(test)
-                exit(0)
-
-
-    def real_reflection(self, should_not_match=None):
-        results = set()
-
         row_match = None
         row_match_index = None
         for w_size in range(1, (self.rows // 2) + 1):
@@ -128,7 +104,10 @@ class Land:
                 row_match = True
                 row_match_index = match_index
                 result = match_index * 100
-                results.add(result)
+                if should_not_match is None:
+                    return result
+                elif should_not_match != result:
+                    return result
 
             match = True
             for index in range(w_size):
@@ -147,7 +126,10 @@ class Land:
                 row_match = True
                 row_match_index = match_index
                 result = match_index * 100
-                results.add(result)
+                if should_not_match is None:
+                    return result
+                elif should_not_match != result:
+                    return result
 
 
         column_match = None
@@ -169,7 +151,10 @@ class Land:
                 column_match = True
                 column_match_index = match_index
                 result = match_index
-                results.add(result)
+                if should_not_match is None:
+                    return result
+                elif should_not_match != result:
+                    return result
 
             match = True
             for index in range(w_size):
@@ -188,9 +173,12 @@ class Land:
                 column_match = True
                 column_match_index = match_index
                 result = match_index
-                results.add(result)
+                if should_not_match is None:
+                    return result
+                elif should_not_match != result:
+                    return result
 
-        return results
+        return None
 
 
 def load_lands(data):
@@ -218,10 +206,8 @@ def solve_part2(data):
     ok_lands = []
     for land in lands:
         current_reflection = land.reflection()
-        assert current_reflection > 0
-        should_not_match = land.reflections
         for test_land in land.iterations:
-            new_reflection = test_land.reflection(should_not_match)
+            new_reflection = test_land.reflection(current_reflection)
             if new_reflection is not None:
                 ok_lands.append(new_reflection)
                 break

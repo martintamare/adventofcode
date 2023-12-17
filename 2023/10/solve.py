@@ -579,6 +579,7 @@ class Maze:
 
         while open_set:
             current = open_set.pop(0)
+            print(f"testing {current}@{current.position}")
 
             if self.is_goal_reached(current, goal):
                 self.valid_path = self.reconstruct_path(current)

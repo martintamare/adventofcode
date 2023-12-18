@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 from math import inf as infinity
+from functools import cache
+from collections import namedtuple
+from functools import lru_cache
+import functools
+import json
+
+Serialized = namedtuple('Serialized', 'json')
 
 test_data = [
     '2413432311323',
@@ -18,6 +25,9 @@ test_data = [
 ]
 
 DEBUG = False
+
+
+
 
 class City:
     def __init__(self, citymap, value, row, col):
@@ -44,35 +54,73 @@ class City:
         return f"{self.row},{self.col}"
 
     @property
-    def neighbors_for_astar(self):
+    def neighbors_for_graph(self):
+        neighbors = []
+        neighbors.append('left')
+        neighbors.append('up')
+        neighbors.append('down')
+        neighbors.append('right')
+
+        real_neigbhors = []
+        for neighbor in neighbors:
+            if neighbor == 'right':
+                row = self.row
+                col = self.col + 1
+            elif neighbor == 'down':
+                row = self.row + 1
+                col = self.col
+            elif neighbor == 'left':
+                row = self.row
+                col = self.col - 1
+            elif neighbor == 'up':
+                row = self.row - 1
+                col = self.col
+
+            if col < 0 or col >= self.citymap.columns:
+                continue
+            if row < 0 or row >= self.citymap.rows:
+                continue
+            real_neigbhor = self.citymap.matrix[row][col]
+            real_neigbhors.append(real_neigbhor)
+
+        return real_neigbhors
+
+    def neighbors_for_astar(self, current_path):
         neighbors = []
 
-        if not self.came_from:
+        if not current_path:
             # on est au début
             neighbors.append('down')
             neighbors.append('right')
         else:
-            neighbors.append('left')
-            neighbors.append('up')
             neighbors.append('down')
             neighbors.append('right')
-            vector_row = self.row - self.came_from.row
-            vector_col = self.col - self.came_from.col
-            current = self.came_from
-            delta_row = vector_row
-            delta_col = vector_col 
-            while current.came_from:
-                test_vector_row = current.row - current.came_from.row
-                test_vector_col = current.col - current.came_from.col
-                current = current.came_from
-                if test_vector_row == vector_row:
-                    delta_row += vector_row
-                elif test_vector_col == vector_col:
-                    delta_col += delta_col
+            neighbors.append('left')
+            neighbors.append('up')
+            vector_row = None
+            vector_col = None
+            delta_row = None
+            delta_col = None
+            current = None
+            for item in reversed(current_path):
+                if item == self:
+                    continue
+                if vector_row is None:
+                    vector_row = self.row - item.row
+                    vector_col = self.col - item.col
+                    delta_row = vector_row
+                    delta_col = vector_col 
+                    current = item
                 else:
-                    break
-
-            print(f"{self=}@{self.position} {self.came_from=}@{self.came_from.position} {vector_row=} {vector_col=} {delta_row=} {delta_col=}")
+                    test_vector_row = current.row - item.row
+                    test_vector_col = current.col - item.col
+                    current = item
+                    if test_vector_row == vector_row:
+                        delta_row += vector_row
+                    elif test_vector_col == vector_col:
+                        delta_col += delta_col
+                    else:
+                        break
 
             min_row = max(0, self.row - 1)
             max_row = min(self.row + 2, len(self.citymap.matrix))
@@ -128,6 +176,8 @@ class Citymap:
 
         initial_rows = len(data)
         initial_columns = len(data[0])
+        self.min_at_node = {}
+        self.current_min = None
 
         for row, line in enumerate(data):
             matrix_row = []
@@ -137,6 +187,10 @@ class Citymap:
                 matrix_row.append(city)
 
             self.matrix.append(matrix_row)
+
+        for row in self.matrix:
+            for node in row:
+                self.min_at_node[node] = infinity
 
     def __repr__(self):
         display = []
@@ -149,8 +203,62 @@ class Citymap:
     def cost_estimate(self, current, goal):
         return abs(current.row-goal.row) * 9 + abs(current.col-goal.col) * 9
 
+
+    def find_best_path(self, start, end, current_path=[]):
+        current_value = 0
+        for test in current_path:
+            current_value += test.value
+        if self.current_min is not None:
+            if current_value > self.current_min:
+                return None
+
+        if start == end:
+            return current_path
+        else:
+            current_path_value = None
+            current_sum_value = None
+            for neighbor in start.neighbors_for_astar(current_path):
+                if neighbor in current_path:
+                    continue
+                current_path_neighbor = current_path.copy()
+                current_path_neighbor.append(start)
+                final_path = self.find_best_path(neighbor, end, current_path_neighbor)
+                if final_path is None:
+                    continue
+                current_value = 0
+                for test in final_path:
+                    current_value += test.value
+                if self.current_min is not None and self.current_min < current_value:
+                    continue
+                if current_path_value is None:
+                    current_path_value = final_path
+                    current_sum_value = current_value
+                    print(f"min {current_value}")
+                    self.current_min = current_value
+                elif current_value < current_sum_value:
+                    current_path_value = final_path
+                    current_sum_value = current_value
+                    self.current_min = current_value
+                    print(f"new min {current_value}")
+            return current_path_value
+
+
     @property
     def part1(self):
+        start = self.matrix[0][0]
+        end = self.matrix[-1][-1]
+
+        best_path = self.find_best_path(start, end)
+        print("{best_path=}")
+        min_item = 0
+        for item in best_path:
+            min_item += item.value
+        return min_item + end.value
+
+
+
+    @property
+    def part1_astar_ko(self):
         start = self.matrix[0][0]
         end = self.matrix[-1][-1]
         test = self.astar(start, end)
@@ -285,7 +393,7 @@ def part2():
     print(f'part2 is {result}')
 
 
-test_part1()
+#test_part1()
 part1()
 #test_part2()
 #part2()

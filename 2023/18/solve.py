@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 from math import inf as infinity
+import sys
+
+sys.setrecursionlimit(100000000)
 
 test_data = [
     'R 6 (#70c710)',
@@ -40,6 +43,13 @@ class Tile:
         self.internal = False
         self.external = False
 
+    def __repr__(self):
+        return self.value
+
+    @property
+    def position(self):
+        return f"{self.row},{self.col}"
+
     def init_for_astar(self):
         self.gscore = infinity
         self.fscore = infinity
@@ -54,23 +64,73 @@ class Tile:
 
         neighbors = []
 
-        # Will go from row-1 col-1 to row+1 col+len+1
-        min_row = max(0, self.row - 1)
-        max_row = min(self.row + 2, len(self.maze.array))
+        # up
+        row = self.row - 1
+        col = self.col
+        if row >= self.maze.min_row:
+            tile = None
+            if row in self.maze.matrix:
+                if col in self.maze.matrix[row]:
+                    tile = self.maze.matrix[row][col]
+                else:
+                    tile = Tile(self.maze, '.', row, col)
+                    self.maze.matrix[row][col] = tile
+            else:
+                tile = Tile(self.maze, '.', row, col)
+                self.maze.matrix[row][col] = tile
+            if tile.value != '#':
+                neighbors.append(tile)
 
-        min_col = max(0, self.col -1)
-        max_col = min(self.col + 2, len(self.maze.array[0]))
+        # Down
+        row = self.row + 1
+        col = self.col
+        if row <= self.maze.max_row:
+            tile = None
+            if row in self.maze.matrix:
+                if col in self.maze.matrix[row]:
+                    tile = self.maze.matrix[row][col]
+                else:
+                    tile = Tile(self.maze, '.', row, col)
+                    self.maze.matrix[row][col] = tile
+            else:
+                tile = Tile(self.maze, '.', row, col)
+                self.maze.matrix[row][col] = tile
+            if tile.value != '#':
+                neighbors.append(tile)
 
-        for row in range(min_row, max_row):
-            for col in range(min_col, max_col):
-                if row == self.row and col == self.col:
-                    continue
+        # Left
+        row = self.row 
+        col = self.col - 1
+        if col >= self.maze.min_col:
+            tile = None
+            if row in self.maze.matrix:
+                if col in self.maze.matrix[row]:
+                    tile = self.maze.matrix[row][col]
+                else:
+                    tile = Tile(self.maze, '.', row, col)
+                    self.maze.matrix[row][col] = tile
+            else:
+                tile = Tile(self.maze, '.', row, col)
+                self.maze.matrix[row][col] = tile
+            if tile.value != '#':
+                neighbors.append(tile)
 
-                tile = self.maze.array[row][col]
-                if tile.internal:
-                    continue
-                if tile.value in ['.']:
-                    neighbors.append(tile)
+        # Right
+        row = self.row
+        col = self.col + 1
+        if col <= self.maze.max_col:
+            tile = None
+            if row in self.maze.matrix:
+                if col in self.maze.matrix[row]:
+                    tile = self.maze.matrix[row][col]
+                else:
+                    tile = Tile(self.maze, '.', row, col)
+                    self.maze.matrix[row][col] = tile
+            else:
+                tile = Tile(self.maze, '.', row, col)
+                self.maze.matrix[row][col] = tile
+            if tile.value != '#':
+                neighbors.append(tile)
 
         self._neighbors_for_astar = neighbors
         return neighbors
@@ -86,10 +146,16 @@ class Terrain:
             self.matrix[row] = {}
         self.matrix[row][col] = '#'
 
-    def __repr__(self):
-        min_row = min(self.matrix.keys())
-        max_row = max(self.matrix.keys())
+    @property
+    def min_row(self):
+        return min(self.matrix.keys())
 
+    @property
+    def max_row(self):
+        return max(self.matrix.keys())
+
+    @property
+    def min_col(self):
         min_col = None
         max_col = None
         for row, col_data in self.matrix.items():
@@ -103,12 +169,32 @@ class Terrain:
                 max_col = test_max_col
             elif test_max_col > max_col:
                 max_col = test_max_col
+        return min_col
+
+    @property
+    def max_col(self):
+        min_col = None
+        max_col = None
+        for row, col_data in self.matrix.items():
+            test_min_col = min(col_data.keys())
+            test_max_col = max(col_data.keys())
+            if min_col is None:
+                min_col = test_min_col
+            elif test_min_col < min_col:
+                min_col = test_min_col
+            if max_col is None:
+                max_col = test_max_col
+            elif test_max_col > max_col:
+                max_col = test_max_col
+        return max_col
+
+
+    def __repr__(self):
 
         lines = []
-
-        for row in range(min_row, max_row+1):
+        for row in range(self.min_row, self.max_row+1):
             line = ''
-            for col in range(min_col, max_col+1):
+            for col in range(self.min_col, self.max_col+1):
                 if row in self.matrix:
                     if col in self.matrix[row]:
                         line += self.matrix[row][col]
@@ -124,6 +210,7 @@ class Terrain:
         min_row = min(self.matrix.keys())
         max_row = max(self.matrix.keys())
 
+        print("Building indexes")
         min_col = None
         max_col = None
         for row, col_data in self.matrix.items():
@@ -137,53 +224,81 @@ class Terrain:
                 max_col = test_max_col
             elif test_max_col > max_col:
                 max_col = test_max_col
+        print("Building indexes OK")
 
-        real_row = 0
-        for row in range(min_row-1, max_row+2):
+
+        # Add array of '.'
+        min_row = self.min_row - 1
+        max_row = self.max_row + 1
+        min_col = self.min_col - 1
+        max_col = self.max_col + 1
+
+        print(f"{min_row=} {max_row=} {min_col=} {max_col=}")
+
+        self.matrix[min_row] = {}
+        self.matrix[max_row] = {}
+        for col in range(min_col, max_col+1):
+            self.matrix[min_row][col] = '.'
+        for col in range(min_col, max_col+1):
+            self.matrix[max_row][col] = '.'
+        for row in range(min_row, max_row+1):
+            if row not in self.matrix:
+                self.matrix[row] = {}
+            self.matrix[row][min_col] = '.'
+            self.matrix[row][max_col] = '.'
+
+        self.real_min_row = self.min_row
+        self.real_max_row = self.max_row
+        self.real_min_col = self.min_col
+        self.real_max_col = self.max_col
+
+        print("Flooding")
+        self.flood(self.min_row, self.min_col)
+        print("Flooding OK")
+
+        count = 0
+        for row in range(self.real_min_row, self.real_max_row+1):
             line = []
-            real_col = 0
-            for col in range(min_col-1, max_col+2):
+            for col in range(self.real_min_col, self.real_max_col+1):
                 if row in self.matrix:
                     if col in self.matrix[row]:
                         data = self.matrix[row][col]
-                        tile = Tile(self, data, real_row, real_col)
-                        line.append(tile)
+                        if data != '0':
+                          count += 1
                     else:
-                        tile = Tile(self, '.', real_row, real_col)
-                        line.append(tile)
-                else:
-                    tile = Tile(self, '.', real_row, real_col)
-                    line.append(tile)
-                real_col += 1
-            self.array.append(line)
-            real_row += 1
+                        count += 1
 
-        print(self)
-        count = 0
-        goal = self.array[0][0]
-        for row, row_data in enumerate(self.array):
-            row_count = 0
-            for col, data in enumerate(row_data):
-                if row == 0 or row == len(self.array) - 1:
-                    continue
-                if col == 0 or col == len(self.array[0]) - 1:
-                    continue
-                if data.value == '#':
-                    row_count += 1
-                elif data.value == '.':
-                    if not self.astar(data, goal):
-                        print(f"{row},{col} cannot exit")
-                        row_count += 1
-                        data.internal = True
-                    else:
-                        data.external = True
-                else:
-                    print('WTG????')
-                    exit(0)
-            row_print = list(map(lambda x: x.value, row_data))
-            count += row_count
-        print(self)
+
         return count
+
+
+
+    def flood(self, row, col):
+        condition_1 = row >= self.real_min_row and row <= self.real_max_row
+        condition_2 = col >= self.real_min_col and col <= self.real_max_col
+        condition_3 = False
+        if row in self.matrix and col in self.matrix[row]:
+            if self.matrix[row][col] == '.':
+                condition_3 = True
+        else:
+            condition_3 = True
+
+        if condition_1 and condition_2 and condition_3:
+            if row in self.matrix:
+                self.matrix[row][col] = '0'
+
+            self.flood(row-1,col)
+            self.flood(row+1,col)
+            self.flood(row,col-1)
+            self.flood(row,col+1)
+
+    def flood_array(self, row, col):
+        if ~0<row<self.rows and ~0<col<self.columns and self.array[row][col]  == '.':
+            self.array[row][col] = '0'
+            self.flood(row-1,col)
+            self.flood(row+1,col)
+            self.flood(row,col-1)
+            self.flood(row,col+1)
 
     def reconstruct_path(self, last):
         def _gen():
@@ -194,7 +309,7 @@ class Terrain:
 
         return _gen()
     def cost_estimate(self, current, goal):
-        return abs(current.row-goal.row) + abs(current.col-goal.col)
+        return abs(current.row-goal.row) + abs(current.col-goal.col) + 1
 
     def distance_between(self, current, goal):
         return abs(current.row-goal.row) + abs(current.col-goal.col)
@@ -206,8 +321,8 @@ class Terrain:
         return current == goal
 
     def astar(self, start, goal):
-        for row in self.array:
-            for tile in row:
+        for row, row_data in self.matrix.items():
+            for col, tile in row_data.items():
                 tile.init_for_astar()
 
         self.valid_path = []
@@ -216,7 +331,8 @@ class Terrain:
             return True
 
         open_set = []
-        search_nodes = {}
+        tested_set = []
+
         start_node = start
         start_node.gscore = 0.0
         start_node.fscore = self.cost_estimate(start_node, goal)
@@ -227,16 +343,15 @@ class Terrain:
             current = open_set.pop(0)
 
             if self.is_goal_reached(current, goal):
+                self.valid_path = self.reconstruct_path(current)
+                for node in self.valid_path:
+                    node.external = True
                 return True
 
             current.closed = True
-            #print(f"current {current.row},{current.col}")
             for neighbor in current.neighbors_for_astar:
-                #print(f"neighbor {neighbor.row},{neighbor.col}")
                 if neighbor.external:
                     return True
-                if neighbor.internal:
-                    return False
                 if neighbor.closed:
                     continue
 
@@ -293,8 +408,55 @@ def solve_part1(data):
             terrain.add_trench(current_row, current_col)
     return terrain.fill()
 
+
 def solve_part2(data):
-    pass
+    terrain = Terrain()
+
+    current_row = None
+    current_col = None
+
+    mapping_direction = {
+        0: 'R',
+        1: 'D',
+        2: 'L',
+        3: 'U',
+    }
+
+    for instruction in data:
+        direction, amount, color = instruction.split(' ')
+        print(color)
+        real_amount = int(color[2:7], 16)
+        real_direction = int(color[-2])
+        if real_direction not in mapping_direction:
+            print('njfkgezngkjzengkez')
+            exit(0)
+        direction = mapping_direction[real_direction]
+
+        if direction == 'R':
+            delta_row = 0
+            delta_col = 1
+        elif direction == 'L':
+            delta_row = 0
+            delta_col = -1
+        elif direction == 'U':
+            delta_row = -1
+            delta_col = 0
+        elif direction == 'D':
+            delta_row = 1
+            delta_col = 0
+
+        for a in range(real_amount):
+            if current_row is None:
+                current_row = 0
+                current_col = 0
+            else:
+                test_row = current_row + delta_row
+                test_col = current_col + delta_col
+                current_row = test_row
+                current_col = test_col
+            terrain.add_trench(current_row, current_col)
+    return terrain.fill()
+
 
 
 def test_part1():
@@ -309,13 +471,14 @@ def part1():
     result = solve_part1(data)
     print(f'part1 is {result}')
     assert result < 34903
+    assert result == 33491
 
 
 def test_part2():
     data = test_data
     result = solve_part2(data)
     print(f'test2 is {result}')
-    assert result == 25
+    assert result == 952408144115
 
 
 def part2():
@@ -326,5 +489,5 @@ def part2():
 
 test_part1()
 part1()
-#test_part2()
-#part2()
+test_part2()
+part2()

@@ -164,7 +164,6 @@ def solve(data, part=1):
     init_pulse = (0, None, broadcaster)
 
     def process(press=None, needed_sources=None):
-
         queue = [init_pulse]
         low_count = 0
         high_count = 0
@@ -191,6 +190,7 @@ def solve(data, part=1):
             elif destination_module.type == 'conjunction':
                 # When a pulse is received, the conjunction module first updates its memory for that input
                 destination_module.source_states[source_module.name] = pulse_in
+                # if it remembers high pulses for all inputs, it sends a low pulse
                 if all(destination_module.source_states.values()):
                     pulse_out = 0
                 else:
@@ -201,9 +201,6 @@ def solve(data, part=1):
                         for source, state in destination_module.source_states.items():
                             if state:
                                 needed_sources[source] = press
-
-
-
             else:
                 continue
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections import Counter
 
 test_data = [
     'broadcaster -> a, b, c',
@@ -29,7 +30,7 @@ class Module:
         return self.name
 
     def process(self, pulse):
-        if pulse.state == 'low':
+        if pulse.state == 0:
             self.ok = True
         return []
 
@@ -37,18 +38,18 @@ class Broadcaster(Module):
     def __init__(self, name, destinations, modules):
         super().__init__(name, 'broadcaster', destinations, modules)
 
-    def process(self, pulse):
+    def process(self, pulse, source):
         pulses = []
         for destination in self.destinations:
             module = self.modules[destination]
-            pulse = Pulse(pulse.state, self, module, self.modules)
+            pulse = (pulse, self, module)
             pulses.append(pulse)
         return pulses
 
 
 class FlipFlopModule(Module):
     def __init__(self, name, destinations, modules):
-        self.state = 'low'
+        self.state = 0
         super().__init__(name, 'flipflop', destinations, modules)
 
     def toggle(self):
@@ -57,21 +58,21 @@ class FlipFlopModule(Module):
         else:
             self.state = True
 
-    def process(self, pulse):
+    def process(self, pulse, source):
         pulses = []
 
-        if pulse.state == 'high':
+        if pulse:
             return pulses
 
 
-        if self.state == 'high':
-            self.state = 'low'
+        if self.state == 1:
+            self.state = 0
         else:
-            self.state = 'high'
+            self.state = 1
 
         for destination in self.destinations:
             module = self.modules[destination]
-            pulse = Pulse(self.state, self, module, self.modules)
+            pulse = (self.state, self, module)
             pulses.append(pulse)
 
         return pulses
@@ -80,69 +81,38 @@ class FlipFlopModule(Module):
 
 class ConjuctionModule(Module):
     def __init__(self, name, destinations, modules):
-        self.sources = {}
         self.source_states = {}
         super().__init__(name, 'conjunction', destinations, modules)
 
     def add_source(self, module):
-        if module.name not in self.sources:
-            self.sources[module.name] = module
-            self.source_states[module.name] = 'low'
+        if module.name not in self.source_states:
+            self.source_states[module.name] = 0
 
-    def process(self, pulse):
+    def process(self, pulse, source):
         pulses = []
 
         # When a pulse is received, the conjunction module first updates its memory for that input
         source_states = []
-        for source in self.source_states.keys():
-            if pulse.source.name == source:
+        for source_module in self.source_states.keys():
+            if source_module == source:
                 self.source_states[source] = pulse.state
                 source_states.append(pulse.state)
             else:
-                last_state = self.source_states[source]
+                last_state = self.source_states[source_module]
                 source_states.append(last_state)
             
 
-        if not len(source_states):
-            print(f"{source_states=} {pulse.state=} {self}")
+        print(f"{source_states=} {pulse=} {self}")
 
-        if len(set(source_states)) == 1 and source_states[0] == 'high':
-            new_pulse_state = 'low'
+        if len(set(source_states)) == 1 and source_states[0] == 1:
+            new_pulse_state = 0
         else:
-            new_pulse_state = 'high'
+            new_pulse_state = 1
 
         for destination in self.destinations:
             module = self.modules[destination]
-            pulse = Pulse(new_pulse_state, self, module, self.modules)
+            pulse = (new_pulse_state, self, module)
             pulses.append(pulse)
-        return pulses
-
-
-class Button(Module):
-    def __init__(self, name, modules):
-        super().__init__(name, 'button', ['broadcaster'], modules)
-
-    def process(self, pulse):
-        pulses = []
-        for destination in self.destinations:
-            module = self.modules[destination]
-            pulse = Pulse(pulse.state, self, module, self.modules)
-            pulses.append(pulse)
-        return pulses
-
-
-class Pulse:
-    def __init__(self, state, source, destination, modules):
-        self.state = state
-        self.modules = modules
-        self.source = source
-        self.destination = destination
-
-    def __repr__(self):
-        return f"{self.source.name} -{self.state} -> {self.destination.name}"
-
-    def launch(self):
-        pulses = self.destination.process(self)
         return pulses
 
 
@@ -155,7 +125,7 @@ def load_data():
     return data
 
 
-def solve_part1(data):
+def solve(data, part=1):
     modules = {}
     broadcaster = None
     for line in data:
@@ -190,37 +160,71 @@ def solve_part1(data):
             if destination_module.type == 'conjunction':
                 destination_module.add_source(module)
 
-    button = Button('button', modules)
-    modules['button'] = button
-    init_pulse = Pulse('low', button, broadcaster, modules)
+    init_pulse = (0, None, broadcaster)
 
     def process():
-        pulses = [init_pulse]
-        low_count = 1
+        queue = [init_pulse]
+        low_count = 0
         high_count = 0
-        while True:
-            new_pulses = []
-            for pulse in pulses:
-                next_pulses = pulse.launch()
-                new_pulses += next_pulses
-                for p in next_pulses:
-                    if p.state == 'high':
-                        high_count += 1
-                    else:
-                        low_count += 1
-            pulses = new_pulses
-            if not pulses:
-                break
+        while queue:
+            pulse_in, source_module, destination_module = queue.pop(0)
+
+            if pulse_in:
+                high_count += 1
+            else:
+                low_count += 1
+
+            pulse_out = None
+            if destination_module.type == 'broadcaster':
+                pulse_out = pulse_in
+            elif destination_module.type == 'flipflop':
+                if pulse_in:
+                    continue
+                elif destination_module.state:
+                    pulse_out = 0
+                    destination_module.state = 0
+                else:
+                    pulse_out = 1
+                    destination_module.state = 1
+            elif destination_module.type == 'conjunction':
+                # When a pulse is received, the conjunction module first updates its memory for that input
+                destination_module.source_states[source_module.name] = pulse_in
+                if all(destination_module.source_states.values()):
+                    pulse_out = 0
+                else:
+                    pulse_out = 1
+            elif destination_module.name == 'rx':
+                if not pulse_in:
+                    destination_module.is_ok = True
+            else:
+                continue
+
+            if pulse_out is None:
+                continue
+
+            for destination in destination_module.destinations:
+                next_destination = modules[destination]
+                queue.append((pulse_out, destination_module, next_destination))
+
         return low_count, high_count
 
-    total_low = 0
-    total_high = 0
-    for i in range(1000):
-        low, high = process()
-        total_low += low
-        total_high += high
-    print(f"{total_low=} {total_high=}")
-    return total_low * total_high
+    if part == 1:
+        total_low = 0
+        total_high = 0
+        for i in range(1000):
+            low, high = process()
+            total_low += low
+            total_high += high
+        print(f"{total_low=} {total_high=}")
+        return total_low * total_high
+    else:
+        index = 1
+        rx = modules['rx']
+        while not rx.ok:
+            process()
+            index += 1
+        return index
+
 
 
 
@@ -263,7 +267,7 @@ def solve_part2(data):
 
     button = Button('button', modules)
     modules['button'] = button
-    init_pulse = Pulse('low', button, broadcaster, modules)
+    init_pulse = Pulse(0, button, broadcaster, modules)
 
     def process():
         pulses = [init_pulse]
@@ -288,19 +292,19 @@ def solve_part2(data):
 
 def test_part1():
     data = test_data
-    result = solve_part1(data)
+    result = solve(data)
     print(f'test_data is {result}')
     assert result == 32000000
 
     data = test_data_2
-    result = solve_part1(data)
+    result = solve(data)
     print(f'test_data_2 is {result}')
     assert result == 11687500
 
 
 def part1():
     data = load_data()
-    result = solve_part1(data)
+    result = solve(data)
     print(f'part1 is {result}')
     assert result > 519509025
     assert result == 670984704
@@ -315,7 +319,7 @@ def test_part2():
 
 def part2():
     data = load_data()
-    result = solve_part2(data)
+    result = solve(data, part=2)
     print(f'part2 is {result}')
 
 

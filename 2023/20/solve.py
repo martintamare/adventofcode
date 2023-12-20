@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from collections import Counter
+from math import lcm
 
 test_data = [
     'broadcaster -> a, b, c',
@@ -162,7 +163,8 @@ def solve(data, part=1):
 
     init_pulse = (0, None, broadcaster)
 
-    def process():
+    def process(press=None, needed_sources=None):
+
         queue = [init_pulse]
         low_count = 0
         high_count = 0
@@ -193,9 +195,15 @@ def solve(data, part=1):
                     pulse_out = 0
                 else:
                     pulse_out = 1
-            elif destination_module.name == 'rx':
-                if not pulse_in:
-                    destination_module.is_ok = True
+
+                if needed_sources is not None:
+                    if 'rx' in destination_module.destinations:
+                        for source, state in destination_module.source_states.items():
+                            if state:
+                                needed_sources[source] = press
+
+
+
             else:
                 continue
 
@@ -205,6 +213,11 @@ def solve(data, part=1):
             for destination in destination_module.destinations:
                 next_destination = modules[destination]
                 queue.append((pulse_out, destination_module, next_destination))
+
+        if needed_sources is not None:
+            if all(needed_sources.values()):
+                modules['rx'].ok = True
+                return
 
         return low_count, high_count
 
@@ -218,76 +231,28 @@ def solve(data, part=1):
         print(f"{total_low=} {total_high=}")
         return total_low * total_high
     else:
+
+        rx_conjunction = None
+        for module in modules.values():
+            if 'rx' in module.destinations:
+                rx_conjunction = module
+                break
+        needed_sources = {}
+        for source in rx_conjunction.source_states.keys():
+            needed_sources[source] = 0
+
         index = 1
-        rx = modules['rx']
-        while not rx.ok:
-            process()
+        while True:
+            process(index, needed_sources)
+            if modules['rx'].ok:
+                return lcm(*list(needed_sources.values()))
+
+
             index += 1
         return index
 
 
 
-
-def solve_part2(data):
-    modules = {}
-    broadcaster = None
-    for line in data:
-        source, destination = line.split(' -> ')
-        destinations = destination.split(', ')
-        if source == 'broadcaster':
-            module = Broadcaster(source, destinations, modules)
-            broadcaster = module
-        elif source[0] == '&':
-            module = ConjuctionModule(source[1:], destinations, modules)
-        elif source[0] == '%':
-            module = FlipFlopModule(source[1:], destinations, modules)
-        else:
-            print('fnajgaznfgjkazr')
-            exit(0)
-        modules[module.name] = module
-
-    module_to_add = {}
-    for module in modules.values():
-        for destination in module.destinations:
-            if destination not in modules:
-                if destination not in module_to_add:
-                    print(f"{destination=} has no module adding a dummy one")
-                    new_module = Module(destination, 'dummy', [], modules)
-                    module_to_add[destination] = new_module
-    for module in module_to_add.values():
-        modules[module.name] = module
-
-    for module in modules.values():
-        for destination in module.destinations:
-            destination_module = modules[destination]
-            if destination_module.type == 'conjunction':
-                destination_module.add_source(module)
-
-
-
-    button = Button('button', modules)
-    modules['button'] = button
-    init_pulse = Pulse(0, button, broadcaster, modules)
-
-    def process():
-        pulses = [init_pulse]
-        while True:
-            new_pulses = []
-            for pulse in pulses:
-                next_pulses = pulse.launch()
-                new_pulses += next_pulses
-            pulses = new_pulses
-            if not pulses:
-                break
-
-    index = 1
-    rx = modules['rx']
-    while not rx.ok:
-        if index % 1000 == 0:
-            print(index)
-        process()
-        index += 1
-    return index
 
 
 def test_part1():
@@ -321,6 +286,7 @@ def part2():
     data = load_data()
     result = solve(data, part=2)
     print(f'part2 is {result}')
+    assert result == 262775362119547
 
 
 test_part1()

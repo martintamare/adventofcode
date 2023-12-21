@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections import Counter
 
 test_data = [
     '...........',
@@ -23,6 +24,9 @@ class Plot:
         self.value = value
         self.visited = False
         self._neighbors = None
+        self.gardens = set()
+        current_garden = (0, 0)
+        self.gardens.add(current_garden)
 
     @property
     def is_rock(self):
@@ -125,6 +129,9 @@ class Garden:
         new_set = {(x+delta_row, y+delta_col) for x, y in neighbors}
         return new_set
 
+    def get_plot(self, source_row, source_col):
+        return self.matrix[source_row % self.rows][source_col % self.cols]
+
     # get neighbors over infinite map
     def get_neighbors(self, source_row, source_col):
         init_vector = (source_row, source_col)
@@ -178,9 +185,14 @@ class Garden:
 
     def __repr__(self):
         display = []
-        for row in self.matrix:
-            line_repr = ''.join(list(map(str, row)))
-            display.append(line_repr)
+        for row, row_data in enumerate(self.matrix):
+            line = ''
+            for col, char in enumerate(row_data):
+                if (row, col) in self.visited and self.visited[(row, col)]:
+                    line += 'O'
+                else:
+                    line += char.value
+            display.append(line)
         return '\n'.join(display)
 
 
@@ -207,21 +219,61 @@ def solve(data, iteration):
     start_row = garden.start.row
     start_col = garden.start.col
 
-    start = (start_row, start_col)
+    start = (start_row, start_col, 0, 0)
     current_plots = set()
+    plots_counter = {}
     current_plots.add(start)
+    extra_plots = {}
     for i in range(iteration):
+
+
+        # compute les voisins
         next_plots = set()
-        for row, col in current_plots:
+
+        for row, col, garden_row, garden_col in current_plots:
+            current_vector = (row, col)
             garden.set_visited(row, col, False)
+            plot = garden.get_plot(row, col)
             neighbors = garden.get_neighbors(row, col)
             for neighbor_row, neighbor_col in neighbors:
-                vector = (neighbor_row, neighbor_col)
-                next_plots.add(vector)
+                init_vector = (neighbor_row, neighbor_col)
+                final_row = neighbor_row % garden.rows
+                final_col = neighbor_col % garden.cols
+                final_vector = (final_row, final_col)
 
-        for row, col in next_plots:
-            garden.set_visited(row, col, True)
-        current_plots = next_plots
+                final_garden_row = garden_row
+                final_garden_col = garden_col
+
+                if init_vector == final_vector:
+                    # same garden
+                    pass
+                else:
+                    # compute next item garden
+                    #print(f"self {row=} {col=} {garden_row=} {garden_col=} {garden.rows=} {garden.cols=}")
+                    #print(f"neighbor {neighbor_row=} {neighbor_col=}")
+                    delta_garden_col = neighbor_col // garden.cols
+                    delta_garden_row = neighbor_row // garden.rows
+                    #print(f"{delta_garden_row=} {delta_garden_col=}")
+                    final_garden_col += delta_garden_col
+                    final_garden_row += delta_garden_row
+
+                garden.set_visited(final_row, final_col, True)
+                #print(f"final_plot {final_row=} {final_col=} {final_garden_row=} {final_garden_col=}")
+                final_plot = (final_row, final_col, final_garden_row, final_garden_col)
+                next_plots.add(final_plot)
+
+        current_plots = set(next_plots)
+        #print(garden)
+        #print(next_plots)
+        current_sum = len(next_plots)
+        print(f"{i+1} {current_sum=}")
+
+
+        continue
+        # si voisin déjà existant mais que source extérieur
+        # compter
+        # si voisin déjà existant mais que pas source extérieur
+        # pas compter
 
     return len(current_plots)
     pass
@@ -244,7 +296,10 @@ def part1():
 def test_part2():
     data = test_data
     to_check = {
+            8: 30,
+            9: 41,
             10: 50,
+            11: 63,
             50: 1594,
             100: 6536,
             500: 167004,
@@ -253,7 +308,7 @@ def test_part2():
     }
     for step, wanted_result in to_check.items():
         result = solve(data, step)
-        print(f'test2 at {step=} is {result}')
+        print(f'test2 at {step=} {result=} {wanted_result=}')
         assert result == wanted_result
 
 
@@ -263,7 +318,7 @@ def part2():
     print(f'part2 is {result}')
 
 
-test_part1()
-part1()
+#test_part1()
+#part1()
 test_part2()
 #part2()

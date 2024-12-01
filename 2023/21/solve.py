@@ -205,6 +205,21 @@ class Garden:
         return len(self.matrix[0])
 
 
+class GardenMemory:
+    def __init__(self, press, row, col, plots):
+        self.press = press
+        self.row = row
+        self.col = col
+        self.plots = plots
+
+    def __repr__(self):
+        return f"{self.row=} {self.col=} {self.press=} {self.plots=}"
+
+    def case(self):
+        d = self.col * 2 + 1
+        return int(d*d/2) + 1
+
+
 def load_data():
     data = []
     with open('input.txt', 'r') as f:
@@ -224,6 +239,11 @@ def solve(data, iteration):
     plots_counter = {}
     current_plots.add(start)
     extra_plots = {}
+
+    spikes = []
+    squares = []
+
+    memories = {}
     for i in range(iteration):
 
 
@@ -231,6 +251,12 @@ def solve(data, iteration):
         next_plots = set()
 
         for row, col, garden_row, garden_col in current_plots:
+            if garden_row != 0 or garden_col != 0:
+                vector_garden = (garden_row, garden_col)
+                if vector_garden not in memories:
+                    if row == start_row and col == start_col:
+                        memory = GardenMemory(i, garden_row, garden_col, len(current_plots))
+                        memories[vector_garden] = memory
             current_vector = (row, col)
             garden.set_visited(row, col, False)
             plot = garden.get_plot(row, col)
@@ -266,8 +292,57 @@ def solve(data, iteration):
         #print(garden)
         #print(next_plots)
         current_sum = len(next_plots)
-        print(f"{i+1} {current_sum=}")
+        #print(f"{i+1} {current_sum=}")
 
+        if memories:
+            min_garden_row = min([x for x, _ in memories.keys()])
+            max_garden_row = max([x for x, _ in memories.keys()])
+            min_garden_col = min([y for x, y in memories.keys()])
+            max_garden_col = max([y for x, y in memories.keys()])
+
+            # Up Down Left Right ==
+            plots = set()
+            if (min_garden_row, 0) in memories and (max_garden_row, 0) in memories and (0, min_garden_col) in memories and (0, max_garden_col) in memories and max_garden_row == max_garden_col and min_garden_row == min_garden_col:
+                plots.add(memories[(min_garden_row, 0)].plots)
+                plots.add(memories[(max_garden_row, 0)].plots)
+                plots.add(memories[(0, min_garden_col)].plots)
+                plots.add(memories[(0, max_garden_row)].plots)
+
+                if len(plots) == 1:
+                    memory = memories[(0, max_garden_row)]
+                    if memory not in spikes:
+                        spikes.append(memory)
+                        print(f"Spike {len(spikes)} {memory=} {memory.case()}")
+                        input("")
+
+            # Square
+            last_min_garden_row = min_garden_row
+            last_max_garden_row = max_garden_row
+            last_min_garden_col = min_garden_col
+            last_max_garden_col = max_garden_col
+
+            if last_min_garden_row + last_max_garden_row == 0 and last_min_garden_col + last_max_garden_col == 0 and last_max_garden_row == last_max_garden_col:
+                print(f"testing with {last_max_garden_row}")
+
+                min_garden_row = min([x for x, _ in memories.keys()]) + last_max_garden_row - 1
+                max_garden_row = max([x for x, _ in memories.keys()]) - last_max_garden_row + 1
+                min_garden_col = min([y for x, y in memories.keys()]) + last_max_garden_row - 1
+                max_garden_col = max([y for x, y in memories.keys()]) - last_max_garden_row + 1
+                plots = set()
+                if (min_garden_row, min_garden_col) in memories and (min_garden_row, max_garden_col) in memories and (max_garden_row, min_garden_col) in memories and (max_garden_row, max_garden_col) in memories and max_garden_row == max_garden_col and min_garden_row == min_garden_col:
+                    plots.add(memories[(min_garden_row, min_garden_col)].plots)
+                    plots.add(memories[(min_garden_row, max_garden_col)].plots)
+                    plots.add(memories[(max_garden_row, min_garden_col)].plots)
+                    plots.add(memories[(max_garden_row, max_garden_row)].plots)
+                    print(f"square {plots=}")
+                    input("test")
+
+                if len(plots) == 1:
+                    memory = memories[(min_garden_row, max_garden_row)]
+                    if memory not in squares:
+                        squares.append(memory)
+                        print(f"Square {len(squares)} {memory=} {memory.case()}")
+                        input("")
 
         continue
         # si voisin déjà existant mais que source extérieur
@@ -296,10 +371,10 @@ def part1():
 def test_part2():
     data = test_data
     to_check = {
-            8: 30,
-            9: 41,
-            10: 50,
-            11: 63,
+#            8: 30,
+#            9: 41,
+#            10: 50,
+#            11: 63,
             50: 1594,
             100: 6536,
             500: 167004,

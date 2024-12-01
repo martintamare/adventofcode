@@ -71,11 +71,11 @@ def solve(data):
     heat_map = [[int(n) for n in line.strip()] for line in data]
 
     # build an action for all possible movement
-    for row in range(len(heat_map)):
-        for col in range(len(heat_map[0])):
-            for direction in range(len(directions.keys())):
-                for consecutive in range(1, 4):
-                    add_task((row, col, direction, consecutive), infinity)
+    #for row in range(len(heat_map)):
+    #    for col in range(len(heat_map[0])):
+    #        for direction in range(len(directions.keys())):
+    #            for consecutive in range(1, 4):
+    #                add_task((row, col, direction, consecutive), infinity)
 
     # Start with 0,0 going right
     default_task = (0, 0, 1, 0)
@@ -206,6 +206,7 @@ def part1():
     data = load_data()
     result = solve(data)
     print(f'part1 is {result}')
+    assert result == 845
 
 
 def test_part2():
@@ -220,9 +221,10 @@ def part2():
     result = solve_part2(data)
     print(f'part2 is {result}')
     assert result > 979
+    assert result == 993
 
 
-#test_part1()
-#part1()
+test_part1()
+part1()
 test_part2()
 part2()

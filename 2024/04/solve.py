@@ -151,14 +151,10 @@ class Cell:
         # Need to be at least column 3
         if not self.can_go_left:
             return 0
-        # Now get neighbors
-        to_check = ""
-        row = self.row
-        for column in range(self.column - 3, self.column + 1):
-            cell = self.grid.data[row][column]
-            to_check += cell.data
-        assert len(to_check) == 4
-        if to_check == "SAMX":
+
+        vector = (0,-1)
+        to_check = self.get_value(vector)
+        if to_check == "XMAS":
             print(f"LEFT : {self=} {to_check=}")
             return 1
         else:
@@ -170,38 +166,28 @@ class Cell:
         # 10 columns -> index 6 is OK, 7 is KO
         if not self.can_go_right:
             return 0
-        # Now get neighbors
-        to_check = ""
-        row = self.row
-        for column in range(self.column, self.column + 4):
-            cell = self.grid.data[row][column]
-            to_check += cell.data
-        assert len(to_check) == 4
+
+        vector = (0,1)
+        to_check = self.get_value(vector)
         if to_check == "XMAS":
-            print(f"RIGHT: {self=} {to_check=}")
+            print(f"RIGHT : {self=} {to_check=}")
             return 1
         else:
             return 0
-        return 0
 
     @property
     def xmas_up(self):
         # Need to be at least column 3
         if not self.can_go_up:
             return 0
-        # Now get neighbors
-        to_check = ""
-        column = self.column
-        for row in range(self.row - 3, self.row + 1):
-            cell = self.grid.data[row][column]
-            to_check += cell.data
-        assert len(to_check) == 4
-        if to_check == "SAMX":
-            print(f"UP: {self=} {to_check=}")
+
+        vector = (-1,0)
+        to_check = self.get_value(vector)
+        if to_check == "XMAS":
+            print(f"UP : {self=} {to_check=}")
             return 1
         else:
             return 0
-        return 0
 
     @property
     def xmas_down(self):
@@ -209,19 +195,14 @@ class Cell:
         # 10 columns -> index 6 is OK, 7 is KO
         if not self.can_go_down:
             return 0
-        # Now get neighbors
-        to_check = ""
-        column = self.column
-        for row in range(self.row, self.row+ 4):
-            cell = self.grid.data[row][column]
-            to_check += cell.data
-        assert len(to_check) == 4
+
+        vector = (1,0)
+        to_check = self.get_value(vector)
         if to_check == "XMAS":
-            print(f"DOWN: {self=} {to_check=}")
+            print(f"DOWN : {self=} {to_check=}")
             return 1
         else:
             return 0
-        return 0
 
     @property
     def xmas_north_east(self):
@@ -234,7 +215,8 @@ class Cell:
         if to_check == "XMAS":
             print(f"NORTH EAST: {self=} {to_check=}")
             return 1
-        return 0
+        else:
+            return 0
 
     @property
     def xmas_north_west(self):
@@ -247,7 +229,8 @@ class Cell:
         if to_check == "XMAS":
             print(f"NORTH EAST: {self=} {to_check=}")
             return 1
-        return 0
+        else:
+            return 0
 
     @property
     def xmas_south_east(self):
@@ -260,7 +243,8 @@ class Cell:
         if to_check == "XMAS":
             print(f"NORTH EAST: {self=} {to_check=}")
             return 1
-        return 0
+        else:
+            return 0
 
     @property
     def xmas_south_west(self):
@@ -273,7 +257,8 @@ class Cell:
         if to_check == "XMAS":
             print(f"NORTH EAST: {self=} {to_check=}")
             return 1
-        return 0
+        else:
+            return 0
 
 class Grid:
     def __init__(self, data, part=1):
@@ -285,7 +270,6 @@ class Grid:
             row = []
             for column_index, cell_data in enumerate(columns):
                 cell = Cell(row_index, column_index, cell_data, self)
-                print(cell)
                 row.append(cell)
             self.data.append(row)
 
@@ -330,6 +314,7 @@ def part1():
     data = load_data()
     result = solve_part1(data)
     print(f'part1 is {result}')
+    assert result == 2562
 
 
 def test_part2():

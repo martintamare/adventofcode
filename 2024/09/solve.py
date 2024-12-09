@@ -185,8 +185,16 @@ def part1():
 def test_part2():
     data = test_data
     result = solve_part2(data[0])
-    print(f'test2 is {result}')
-    assert result == 2858
+    tests = {
+        data[0]: 2858,
+        "21132": 20,
+        "111": 1,
+        "112": 5,
+        "122": 3
+    }
+    for input_data, wanted_result in tests.items():
+        result = solve_part2(input_data)
+        assert result == wanted_result
 
 
 def part2():

@@ -33,7 +33,6 @@ class Block:
 
     def add_block(self, block):
         self.free_block_inside.append(block)
-        block.processed = True
         block.inserted = True
         self.free_size -= block.size
         if self.free_size < 0:
@@ -146,7 +145,7 @@ def solve_part2(data):
 
     for block in reversed(blocks):
         print(f"We have to insert {block.size} {block.id}")
-        for free_block in filter(lambda x: x.free_size >= block.size and not x.processed, blocks):
+        for free_block in filter(lambda x: x.free_size >= block.size and x.id < block.id, blocks):
             print(f"Adding {block.id} to {free_block.id}")
             free_block.add_block(block)
             break
@@ -204,6 +203,7 @@ def part2():
     assert result < 8460423284794
     assert result < 6309955910883
     print(f'part2 maybe {result}')
+    assert result == 6301361958738
 
 
 #test_part1()

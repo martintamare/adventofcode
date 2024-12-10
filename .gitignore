@@ -2,3 +2,4 @@
 .DS_STORE
 .vscode
 Pipfile*
+__pycache__

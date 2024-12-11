@@ -4,9 +4,14 @@ class Cell:
         self.col = col
         self.data = data
         self.grid = grid
+        self.specialize()
 
     def __repr__(self):
         return f"({self.row},{self.col}):{self.data}"
+
+    def specialize(self):
+        """To fix data in subclass."""
+        pass
 
     @property
     def index(self):
@@ -95,7 +100,7 @@ class Cell:
 
 
 class Grid:
-    def __init__(self, data, part=1):
+    def __init__(self, data, part=1, cell_obj=Cell):
         self.raw_data = data
         self.data = []
         self.part = part
@@ -103,7 +108,7 @@ class Grid:
         for row_index, cols in enumerate(data):
             row = []
             for col_index, cell_data in enumerate(cols):
-                cell = Cell(row_index, col_index, cell_data, self)
+                cell = cell_obj(row_index, col_index, cell_data, self)
                 row.append(cell)
             self.data.append(row)
 

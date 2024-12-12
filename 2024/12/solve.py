@@ -149,20 +149,9 @@ class Region:
         tested = []
 
         while len(to_test):
-            cell = to_test.pop()
+            cell = to_test.pop(0)
             if cell in tested:
                 continue
-
-            for direction in ["right", "down", "left", "up"]:
-                attr = f"{direction}_cell"
-                create_fence = True
-                test_cell = getattr(cell, attr)
-                if test_cell:
-                    if test_cell.data == cell.data:
-                        to_test.append(to_test)
-                        create_fence = False
-                if create_fence:
-                    add_fence(cell, direction)
 
             directions = {
                 "right": ["up_cell", "down_cell"],

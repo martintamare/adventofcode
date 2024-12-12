@@ -145,17 +145,24 @@ class Region:
             self.fences.append(fence)
             cell.add_fence(fence)
 
-        cell = self.cells[0]
-        for direction in ["right", "down", "left", "up"]:
-            attr = f"{direction}_cell"
-            create_fence = True
-            test_cell = getattr(cell, attr)
-            if test_cell and test_cell in cell.neighbors and test_cell.data == cell.data:
-                create_fence = False
-            if create_fence:
-                add_fence(cell, direction)
+        to_test = [self.cells[0]]
+        tested = []
 
-        for cell in self.cells[1:]:
+        while len(to_test):
+            cell = to_test.pop()
+            if cell in tested:
+                continue
+
+            for direction in ["right", "down", "left", "up"]:
+                attr = f"{direction}_cell"
+                create_fence = True
+                test_cell = getattr(cell, attr)
+                if test_cell:
+                    if test_cell.data == cell.data:
+                        to_test.append(to_test)
+                        create_fence = False
+                if create_fence:
+                    add_fence(cell, direction)
 
             directions = {
                 "right": ["up_cell", "down_cell"],
@@ -167,8 +174,9 @@ class Region:
                 attr = f"{direction}_cell"
                 test_cell = getattr(cell, attr)
                 create_fence = True
-                if test_cell and test_cell in cell.neighbors and test_cell.data == cell.data:
+                if test_cell and test_cell.data == cell.data:
                     create_fence = False
+                    to_test.append(test_cell)
 
                 if create_fence:
                     for neighbor in neighbors:
@@ -182,6 +190,8 @@ class Region:
                                 break
                 if create_fence:
                     add_fence(cell, direction)
+
+            tested.append(cell)
 
 
     def is_valid_cell(self, test_cell):

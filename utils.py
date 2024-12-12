@@ -1,3 +1,5 @@
+from functools import cached_property
+
 class Cell:
     def __init__(self, row, col, data, grid):
         self.row = row
@@ -58,6 +60,24 @@ class Cell:
             return cell
         else:
             return None
+    
+    @cached_property
+    def right_cell(self):
+        return self.get_next((0, 1))
+
+    @cached_property
+    def left_cell(self):
+        return self.get_next((0, -1))
+
+    @cached_property
+    def up_cell(self):
+        return self.get_next((-1, 0))
+
+    @cached_property
+    def down_cell(self):
+        return self.get_next((1, 0))
+
+
 
     def neighbors(self, inline=True, diagonals=False, fullline=False):
         """Return all neighbors
@@ -119,6 +139,16 @@ class Grid:
     @property
     def cols(self):
         return len(self.data[0])
+
+    @property
+    def nb_cells(self):
+        return self.rows * self.cols
+
+    @property
+    def cells(self):
+        for row in self.data:
+            for cell in row:
+                yield cell
 
     def __repr__(self):
         lines = []

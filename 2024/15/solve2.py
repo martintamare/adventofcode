@@ -29,16 +29,15 @@ test_data = [
 ]
 
 test_data_2 = [
-    "########",
-    "#..O.O.#",
-    "##@.O..#",
-    "#...O..#",
-    "#.#.O..#",
-    "#...O..#",
-    "#......#",
-    "########",
+    "#######",
+    "#...#.#",
+    "#.....#",
+    "#..OO@#",
+    "#..O..#",
+    "#.....#",
+    "#######",
     "",
-    "<^^>>>vv<v>>v<<",
+    "<vv<<^^<<^^",
 ]
 
 class CustomCell(Cell):
@@ -51,7 +50,24 @@ class CustomCell(Cell):
 
     @property
     def is_box(self):
-        return self.data == "O"
+        return self.is_box_left or self.is_box_right
+
+    @property
+    def is_box_left(self):
+        return self.data == "["
+
+    @property
+    def is_box_right(self):
+        return self.data == "]"
+
+    @property
+    def box_cells(self):
+        if not self.is_box:
+            return None
+        if self.is_box_left:
+            return [self, self.right_cell]
+        else:
+            return [self.left_cell, self]
 
     @property
     def is_robot(self):
@@ -63,13 +79,38 @@ class CustomCell(Cell):
 
     def can_robot_move(self, vector):
         next_cell = self.get_next(vector)
-        print(f"{self} {vector=} {next_cell=}")
+        #print(f"{self} {vector=} {next_cell=}")
         if next_cell is None:
             return False
         elif next_cell.is_wall:
             return False
         elif next_cell.is_box:
-            return next_cell.can_robot_move(vector)
+            # According to vector need to test more thing
+            # Up
+            if vector[0] == -1:
+                # both box cells of next_cell need to move
+                can_move = []
+                for cell in next_cell.box_cells:
+                    can_move.append(cell.can_robot_move(vector))
+                return all(can_move)
+            # Down
+            elif vector[0] == 1:
+                can_move = []
+                for cell in next_cell.box_cells:
+                    can_move.append(cell.can_robot_move(vector))
+                return all(can_move)
+            # Left
+            elif vector[1] == -1:
+                if next_cell.is_box_right:
+                    return next_cell.left_cell.can_robot_move(vector)
+                else:
+                    raise Exception("dnazdnazjkdaz")
+            # Right
+            elif vector[1] == 1:
+                if next_cell.is_box_left:
+                    return next_cell.right_cell.can_robot_move(vector)
+                else:
+                    raise Exception("dnazjndzakjdnza")
         elif next_cell.is_empty:
             return True
         else:
@@ -77,16 +118,43 @@ class CustomCell(Cell):
 
     def move(self, vector):
         if self.can_robot_move(vector):
+            print(f"{self=} CAN MOVE {vector=}")
             next_cell = self.get_next(vector)
             if next_cell.is_box:
-                next_cell.move(vector)
-
+                # According to vector need to test more thing
+                # Up
+                if vector[0] == -1:
+                    # both box cells of next_cell need to move
+                    for cell in next_cell.box_cells:
+                        cell.move(vector)
+                # Down
+                elif vector[0] == 1:
+                    can_move = []
+                    for cell in next_cell.box_cells:
+                        cell.move(vector)
+                # Left
+                elif vector[1] == -1:
+                    if next_cell.is_box_right:
+                        next_cell.left_cell.move(vector)
+                        next_cell.move(vector)
+                    else:
+                        next_cell.move(vector)
+                        next_cell.right_cell.move(vector)
+                # Right
+                elif vector[1] == 1:
+                    if next_cell.is_box_left:
+                        next_cell.right_cell.move(vector)
+                        next_cell.move(vector)
+                    else:
+                        next_cell.move(vector)
+                        next_cell.right_cell.move(vector)
             if next_cell.is_empty:
                 next_cell.data = self.data
                 self.data = "."
                 if next_cell.is_robot:
                     return next_cell
         else:
+            print(f"{self=} CANNOT MOVE {vector=}")
             return self
 
 
@@ -128,7 +196,7 @@ class Grid:
     def gps(self):
         result = 0
         for cell in self.cells:
-            if cell.is_box:
+            if cell.is_box_left:
                 row = cell.row
                 col = cell.col
                 result += row * 100 + col
@@ -174,37 +242,61 @@ def solve_part1(data):
     for instruction in instructions:
         vector = vectors[instruction]
         robot = robot.move(vector)
-    print(grid)
+        print(grid)
+        input("pause")
     return grid.gps
 
 
 def solve_part2(data):
+    grid_data = []
+    instructions = ""
+
+    mode = "grid"
+    for item in data:
+        if not item:
+            mode = "instructions"
+        if mode == "grid":
+            line = []
+            for i in item:
+                if i == "#":
+                    line.append("#")
+                    line.append("#")
+                elif i == "O":
+                    line.append("[")
+                    line.append("]")
+                elif i == ".":
+                    line.append(".")
+                    line.append(".")
+                elif i == "@":
+                    line.append("@")
+                    line.append(".")
+                else:
+                    raise Exception("dnzajkdnazjkdnaz")
+            line = ''.join(line)
+            grid_data.append(line)
+        elif mode == "instructions":
+            instructions += item
+
+    grid = Grid(grid_data)
+    robot = grid.robot
+    vectors = {
+        "^": (-1, 0),
+        "v": (1, 0),
+        "<": (0, -1),
+        ">": (0, 1),
+    }
+    for instruction in instructions:
+        vector = vectors[instruction]
+        robot = robot.move(vector)
+    return grid.gps
     pass
-
-
-def test_part1():
-    data = test_data_2
-    result = solve_part1(data)
-    print(f'test1 is {result}')
-    assert result == 2028
-
-    data = test_data
-    result = solve_part1(data)
-    print(f'test1 is {result}')
-    assert result == 10092
-
-
-def part1():
-    data = load_data()
-    result = solve_part1(data)
-    print(f'part1 is {result}')
 
 
 def test_part2():
     data = test_data
     result = solve_part2(data)
     print(f'test2 is {result}')
-    assert result == 25
+    assert result == 9021
 
 
 def part2():
@@ -213,7 +305,5 @@ def part2():
     print(f'part2 is {result}')
 
 
-test_part1()
-part1()
-#test_part2()
-#part2()
+test_part2()
+part2()

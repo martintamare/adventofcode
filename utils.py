@@ -165,3 +165,46 @@ class Grid:
             line = ''.join(list(map(lambda x: x.print(), row)))
             lines.append(line)
         return "\n".join(lines)
+
+    def compute_best_path(self, start, end):
+        """
+        Compute a the best path from start to end.
+        Cell need to have a function cost_to_neighbor to compute cost.
+        """
+
+        # queue
+        q = [
+            # cost, start, path
+            (0, start, []),
+        ]
+        mins = {start: 0}
+        min_path = None
+        best_path = None
+        while q:
+            (cost, cell, path) = q.pop(0)
+            if min_path is not None and min_path < cost:
+                continue
+
+            path = [cell] + path
+            if cell == end:
+                if min_path is None:
+                    min_path = cost
+                    best_path = path
+                elif min_path > cost:
+                    min_path = cost
+                    best_path = path
+            else:
+                for neighbor in cell.path_neighbors:
+                    if neighbor in path:
+                        continue
+                    prev_cost = mins.get(neighbor, None)
+
+                    cost_to_neighbor = cell.cost_to_neighbor(neighbor, path)
+                    next_cost = cost + cost_to_neighbor
+
+                    if prev_cost is None or next_cost < prev_cost:
+                        mins[neighbor] = next_cost
+                        q.append((next_cost, neighbor, path))
+
+        self.best_path = list(reversed(best_path))
+        self.best_path_cost = min_path

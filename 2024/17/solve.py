@@ -202,8 +202,10 @@ def solve_part2(data):
             elif len_result > max_length:
                 # a mod 8 need octal
                 octal_str = oct(a)
+                print(f"{len_result=} {a=} {octal_str=}")
 
                 # We found a result of x digits -> we want to keep octal for this one
+                # It's the result we want to display
                 to_keep = octal_str[-len_result:]
                 octal_str = '0o' + octal_str[3:]
 

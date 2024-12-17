@@ -1,4 +1,5 @@
 from functools import cached_property
+from math import inf as infinity
 
 class Cell:
     def __init__(self, row, col, data, grid):
@@ -14,6 +15,14 @@ class Cell:
     def specialize(self):
         """To fix data in subclass."""
         pass
+
+    def init_astar(self):
+        """To compute astar."""
+        self.gscore = infinity
+        self.fscore = infinity
+        self.closed = False
+        self.in_openset = False
+        self.came_from = None
 
     @property
     def index(self):

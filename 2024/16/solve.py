@@ -203,6 +203,8 @@ class CustomGrid(Grid):
                     if prev_cost is not None:
                         if prev_cost < next_cost:
                             continue
+                        else:
+                            mins[cache_key] = next_cost
                     else:
                         mins[cache_key] = next_cost
 

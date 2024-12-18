@@ -86,7 +86,12 @@ class Cell:
     def down_cell(self):
         return self.get_next((1, 0))
 
+    @property
+    def path_neighbors(self):
+        raise NotImplementedError("Todo in subclass for path calculation")
 
+    def cost_to_neighbor(self, neighbor, path):
+        raise NotImplementedError("Todo in subclass for path calculation")
 
     def neighbors(self, inline=True, diagonals=False, fullline=False):
         """Return all neighbors
@@ -166,6 +171,9 @@ class Grid:
             lines.append(line)
         return "\n".join(lines)
 
+    def get_cell(self, row, col):
+        return self.data[row][col]
+
     def compute_best_path(self, start, end):
         """
         Compute a the best path from start to end.
@@ -206,5 +214,8 @@ class Grid:
                         mins[neighbor] = next_cost
                         q.append((next_cost, neighbor, path))
 
-        self.best_path = list(reversed(best_path))
+        if best_path is not None:
+            self.best_path = list(reversed(best_path))
+        else:
+            self.best_path = None
         self.best_path_cost = min_path

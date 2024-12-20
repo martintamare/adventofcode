@@ -86,6 +86,9 @@ class Cell:
     def down_cell(self):
         return self.get_next((1, 0))
 
+    def manhattan_distance(self, destination):
+        return abs(self.row - destination.row) + abs(self.col - destination.col)
+
     @property
     def path_neighbors(self):
         raise NotImplementedError("Todo in subclass for path calculation")
@@ -174,6 +177,9 @@ class Grid:
     def get_cell(self, row, col):
         return self.data[row][col]
 
+    def manhattan_distance(self, source, destination):
+        return source.manhattan_distance(destination)
+
     def compute_best_path(self, start, end):
         """
         Compute a the best path from start to end.
@@ -216,6 +222,8 @@ class Grid:
 
         if best_path is not None:
             self.best_path = list(reversed(best_path))
+            self.best_path_mins = mins
         else:
             self.best_path = None
+            self.best_path_mins = {}
         self.best_path_cost = min_path

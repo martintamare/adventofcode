@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from itertools import combinations
+from itertools import combinations, permutations
+from functools import cached_property
 import copy
 
 test_data = [
@@ -112,23 +113,98 @@ class System:
     def __repr__(self):
         return f"{self.lenght=} {self.data=}"
 
-    def test(self, index, swapped=[]):
+    @cached_property
+    def all_indexes(self):
+        data = []
+        for i in range(45):
+            data.append(f"x{i:02}")
+            data.append(f"y{i:02}")
+        return data
+
+    def test(self, index, swapped):
         x_index = f"x{index:02}"
         y_index = f"y{index:02}"
         z_index = f"z{index:02}"
 
-        to_test = [(0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 1)]
+        keys_to_set = []
+
+        previous_index = False
+
+        if index > 0:
+            previous_index = True
+            test_index = index
+            while test_index > 0:
+                test_index = test_index - 1
+                previous_x_index = f"x{test_index:02}"
+                previous_y_index = f"y{test_index:02}"
+                keys_to_set.append(previous_x_index)
+                keys_to_set.append(previous_y_index)
+
+        def get_base_dict():
+            base_dict = {}
+            return base_dict
+            for key in self.all_indexes:
+                base_dict[key] = 0
+            return base_dict
+
+        to_test = []
+        if previous_index is False:
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 0
+            to_test.append((base_dict, 0))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 1
+            base_dict[y_index] = 0
+            to_test.append((base_dict, 1))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 1
+            to_test.append((base_dict, 1))
+
+            base_dict = get_base_dict()
+            base_dict[y_index] = 1
+            base_dict[x_index] = 1
+            to_test.append((base_dict, 0))
+        else:
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 0
+            to_test.append((base_dict, 0))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 1
+            base_dict[y_index] = 0
+            to_test.append((base_dict, 1))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 1
+            to_test.append((base_dict, 1))
+
+            base_dict = get_base_dict()
+            base_dict[y_index] = 1
+            base_dict[x_index] = 1
+            to_test.append((base_dict, 0))
+
+            base_dict = get_base_dict()
+            base_dict[y_index] = 0
+            base_dict[x_index] = 0
+            for key in keys_to_set:
+                base_dict[key] = 1
+            to_test.append((base_dict, 1))
 
         def test_permutations(operations):
             is_ok = True
             for combinaison in to_test:
-                x_value = combinaison[0]
-                y_value = combinaison[1]
-                wanted_z_value = combinaison[2]
+                data_to_set = combinaison[0]
+                wanted_z_value = combinaison[1]
 
                 wires = {}
-                wires[x_index] = x_value
-                wires[y_index] = y_value
+                for index, value in data_to_set.items():
+                    wires[index] = value
 
                 stop = False
                 while not stop:
@@ -163,7 +239,7 @@ class System:
                     is_ok = False
                     break
                 else:
-                    #print(f"{combinaison=} is valid {z_computed=} wanted={combinaison[2]}")
+                    #print(f"{combinaison=} is valid {z_computed=} wanted={combinaison[1]}")
                     pass
             return is_ok
 
@@ -172,23 +248,56 @@ class System:
         test = test_permutations(self.operations)
         if test:
             print("OK without changes")
-            return []
+            return swapped
 
         new_swapped = []
-        for swap in combinations(self.operations, 2):
-            t1, t2 = swap
-            old_destination_1 = t1[3]
-            old_destination_2 = t2[3]
-            #print(f"Swapping {old_destination_1} and {old_destination_2}")
-            t1[3] = old_destination_2
-            t2[3] = old_destination_1
-            test = test_permutations(self.operations)
-            if test:
-                new_swapped.append(swap)
-            else:
-                pass
-            t1[3] = old_destination_1
-            t2[3] = old_destination_2
+        current_c = 0
+        test = len(list(combinations(self.operations, 8)))
+        print(f"{test=}")
+        for c in combinations(self.operations, 8):
+            current_c += 1
+            current_p = 0
+            for swap in permutations(c, 8):
+                current_p += 1
+                print(f"c={current_c} p={current_p}")
+                if swapped is not None and swap not in swapped:
+                    continue
+
+                t0, t1, t2, t3, t4, t5, t6, t7 = swap
+                old_0 = t0[3]
+                old_1 = t1[3]
+                old_2 = t2[3]
+                old_3 = t3[3]
+                old_4 = t4[3]
+                old_5 = t5[3]
+                old_6 = t6[3]
+                old_7 = t7[3]
+
+                #print(f"Swapping {old_destination_1} and {old_destination_2}")
+                t0[3] = old_1
+                t1[3] = old_0
+                t2[3] = old_3
+                t3[3] = old_2
+                t4[3] = old_5
+                t5[3] = old_4
+                t6[3] = old_7
+                t7[3] = old_6
+
+                test = test_permutations(self.operations)
+                if test:
+                    print("OK")
+                    new_swapped.append(swap)
+                else:
+                    pass
+
+                t0[3] = old_0
+                t1[3] = old_1
+                t2[3] = old_2
+                t3[3] = old_3
+                t4[3] = old_4
+                t5[3] = old_5
+                t6[3] = old_6
+                t7[3] = old_7
 
         return new_swapped
 
@@ -249,18 +358,19 @@ def solve_part2(data):
 
     ok_length = int(lenght/2)
     system = System(operations, ok_length)
-    swapped = {}
+    swapped = None
     for index in range(ok_length):
         print(f"Testing {index=}")
-        swapped[index] = system.test(index)
-        print(f"{len(swapped[index])} OK")
-        print(swapped[index])
+        swapped  = system.test(index, swapped)
+        if swapped is not None:
+            print(f"{len(swapped)} OK")
+        input(f"{index=} finished !")
+
     final_set = set()
-    for swaps in swapped.values():
-        for swap in swaps:
-            t1, t2 = swap
-            final_set.add(t1[-1])
-            final_set.add(t2[-1])
+    for swap in swapped:
+        t1, t2 = swap
+        final_set.add(t1[-1])
+        final_set.add(t2[-1])
     print(final_set)
     return ','.join(sorted(list(final_set)))
 
@@ -298,5 +408,5 @@ def part2():
 
 #test_part1()
 #part1()
-test_part2()
+#test_part2()
 part2()

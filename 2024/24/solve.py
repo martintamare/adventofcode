@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from itertools import combinations, permutations
 from functools import cached_property
+from collections import Counter, defaultdict
 import copy
 
 test_data = [
@@ -121,6 +122,287 @@ class System:
             data.append(f"y{i:02}")
         return data
 
+    @cached_property
+    def operations_to_permute(self):
+        # Result of guess_interesting_node
+        test = [(['y05', 'AND', 'x05', 'mkq'], ['tsw', 'XOR', 'wwm', 'hdt']), (['y15', 'AND', 'x15', 'mht'], ['y15', 'XOR', 'x15', 'jgt']), (['tsw', 'XOR', 'wwm', 'hdt'], ['rnk', 'OR', 'mkq', 'z05']), (['x09', 'AND', 'y09', 'z09'], ['vkd', 'XOR', 'wqr', 'gbf']), (['x09', 'AND', 'y09', 'z09'], ['gbf', 'OR', 'ttm', 'pdk']), (['dpr', 'AND', 'nvv', 'z30'], ['dpr', 'XOR', 'nvv', 'nbf'])]
+        to_test = set()
+        for swap in test:
+            t1, t2 = swap
+            to_test.add(t1[3])
+            to_test.add(t2[3])
+
+        result = list(filter(lambda x: x[3] in to_test, self.operations))
+        return result
+
+    def test_interesting_node(self):
+        result_index = defaultdict(list)
+        max_index = None
+        c_index = 1
+        for c in combinations(self.operations_to_permute, 8):
+            print(f"{c_index=}")
+            p_index = 1
+            for swap in permutations(list(c), 8):
+                if p_index % 1000 == 0:
+                    print(f"{c_index=} {p_index=}")
+                p_index += 1
+
+                t0, t1, t2, t3, t4, t5, t6, t7 = swap
+                old_0 = t0[3]
+                old_1 = t1[3]
+                old_2 = t2[3]
+                old_3 = t3[3]
+                old_4 = t4[3]
+                old_5 = t5[3]
+                old_6 = t6[3]
+                old_7 = t7[3]
+
+                t0[3] = old_1
+                t1[3] = old_0
+                t2[3] = old_3
+                t3[3] = old_2
+                t4[3] = old_5
+                t5[3] = old_4
+                t6[3] = old_7
+                t7[3] = old_6
+
+                ok_index = 0
+                missed = 0
+                for index in range(self.lenght):
+                    result = self.test_index(index)
+                    if result:
+                        ok_index += 1
+                    else:
+                        missed += 1
+                    if missed > 2:
+                        break
+
+                if ok_index < 42:
+                    pass
+                elif max_index is None:
+                    max_index = ok_index
+                    print(f"{ok_index=}")
+                    print(f"{swap=}")
+                    result_index[ok_index].append(swap)
+                elif ok_index > max_index:
+                    max_index = ok_index
+                    print(f"{ok_index=}")
+                    print(f"{swap=}")
+                    result_index[ok_index].append(swap)
+
+                t0[3] = old_0
+                t1[3] = old_1
+                t2[3] = old_2
+                t3[3] = old_3
+                t4[3] = old_4
+                t5[3] = old_5
+                t6[3] = old_6
+                t7[3] = old_7
+            c_index += 1
+
+        for index, value in result_index.items():
+            print(f"{index=} {value=}")
+
+
+
+    def guess_interesting_node(self):
+        result_swap = {}
+        result_index = defaultdict(list)
+        max_index = None
+        test = 1
+        for swap in combinations(self.operations, 2):
+            if test % 100 == 0:
+                print(f"iteration {test}")
+            test += 1
+
+            t0, t1 = swap
+            old_0 = t0[3]
+            old_1 = t1[3]
+
+            t0[3] = old_1
+            t1[3] = old_0
+
+            ok_index = 0
+            missed = 0
+            for index in range(self.lenght):
+                result = self.test_index(index)
+                if result:
+                    ok_index += 1
+                else:
+                    missed += 1
+
+                if missed > 3:
+                    break
+
+            result_swap[f"{swap}"] = ok_index
+            result_index[ok_index].append(swap)
+
+            if ok_index < 42:
+                pass
+            elif max_index is None:
+                max_index = ok_index
+                print(ok_index)
+            elif ok_index > max_index:
+                max_index = ok_index
+                print(ok_index)
+            elif ok_index == max_index:
+                print(ok_index)
+                print(f"swap={len(result_index[ok_index])}")
+
+            t0[3] = old_0
+            t1[3] = old_1
+        print(result_index.get(42, None))
+        print(result_index.get(43, None))
+        exit(0)
+
+
+    def test_index(self, index):
+        x_index = f"x{index:02}"
+        y_index = f"y{index:02}"
+        z_index = f"z{index:02}"
+
+        keys_to_set = []
+
+        previous_index = False
+
+        if index > 0:
+            previous_index = True
+            test_index = index
+            while test_index > 0:
+                test_index = test_index - 1
+                previous_x_index = f"x{test_index:02}"
+                previous_y_index = f"y{test_index:02}"
+                keys_to_set.append(previous_x_index)
+                keys_to_set.append(previous_y_index)
+
+        def get_base_dict():
+            base_dict = {}
+            for key in self.all_indexes:
+                base_dict[key] = 0
+            return base_dict
+
+        to_test = []
+        if previous_index is False:
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 0
+            to_test.append((base_dict, z_index, 0))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 1
+            base_dict[y_index] = 0
+            to_test.append((base_dict, z_index, 1))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 1
+            to_test.append((base_dict, z_index, 1))
+
+            base_dict = get_base_dict()
+            base_dict[y_index] = 1
+            base_dict[x_index] = 1
+            to_test.append((base_dict, z_index, 0))
+        else:
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 0
+            to_test.append((base_dict, z_index, 0))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 1
+            base_dict[y_index] = 0
+            to_test.append((base_dict, z_index, 1))
+
+            base_dict = get_base_dict()
+            base_dict[x_index] = 0
+            base_dict[y_index] = 1
+            to_test.append((base_dict, z_index, 1))
+
+            base_dict = get_base_dict()
+            base_dict[y_index] = 1
+            base_dict[x_index] = 1
+            to_test.append((base_dict, z_index, 0))
+
+            base_dict = get_base_dict()
+            base_dict[y_index] = 0
+            base_dict[x_index] = 0
+            for key in keys_to_set:
+                base_dict[key] = 1
+            to_test.append((base_dict, z_index, 1))
+
+        if index == self.lenght - 1:
+            base_dict = get_base_dict()
+            base_dict[y_index] = 1
+            base_dict[x_index] = 1
+            for key in keys_to_set:
+                base_dict[key] = 0
+            next_z_index = f"z{index+1:02}"
+            to_test.append((base_dict, next_z_index, 1))
+
+
+        def test_permutations():
+
+            is_ok = True
+            to_return_path = None
+            for combinaison in to_test:
+                operations = self.operations
+                data_to_set = combinaison[0]
+                wanted_z_index = combinaison[1]
+                wanted_z_value = combinaison[2]
+
+                wires = {}
+                for index, value in data_to_set.items():
+                    wires[index] = value
+
+                stop = False
+                path = set()
+                while not stop:
+                    new_operations = []
+                    has_changes = False
+                    for operation in operations:
+                        w1 = operation[0]
+                        operand = operation[1]
+                        w2 = operation[2]
+                        destination = operation[3]
+                        if w1 in wires and w2 in wires:
+                            path.add(destination)
+                            has_changes = True
+                            if operand == "AND":
+                                wires[destination] = wires[w1] & wires[w2]
+                            elif operand == "OR":
+                                wires[destination] = wires[w1] | wires[w2]
+                            elif operand == "XOR":
+                                wires[destination] = wires[w1] ^ wires[w2]
+                            else:
+                                raise Exception("fazif,nazfaz")
+                        else:
+                            new_operations.append(operation)
+
+                    if not has_changes:
+                        stop = True
+                    elif wanted_z_index in wires:
+                        stop = True
+                    else:
+                        operations = new_operations
+
+                z_computed = wires.get(wanted_z_index, None)
+                if z_computed is None or z_computed != wanted_z_value:
+                    # print(f"{combinaison=} is not valid {z_computed=} {wanted_z_value=} {path=}")
+                    is_ok = False
+                    to_return_path = path
+                    break
+                else:
+                    # print(f"{combinaison=} is valid {z_computed=} wanted={combinaison[1]}")
+                    pass
+            return is_ok, to_return_path
+
+
+        # No changes
+        test, path = test_permutations()
+        return test
+
+
+
     def test(self, index, swapped):
         x_index = f"x{index:02}"
         y_index = f"y{index:02}"
@@ -196,9 +478,12 @@ class System:
                 base_dict[key] = 1
             to_test.append((base_dict, 1))
 
-        def test_permutations(operations):
+        def test_permutations():
+
             is_ok = True
+            to_return_path = None
             for combinaison in to_test:
+                operations = self.operations
                 data_to_set = combinaison[0]
                 wanted_z_value = combinaison[1]
 
@@ -207,6 +492,7 @@ class System:
                     wires[index] = value
 
                 stop = False
+                path = set()
                 while not stop:
                     new_operations = []
                     has_changes = False
@@ -216,6 +502,7 @@ class System:
                         w2 = operation[2]
                         destination = operation[3]
                         if w1 in wires and w2 in wires:
+                            path.add(destination)
                             has_changes = True
                             if operand == "AND":
                                 wires[destination] = wires[w1] & wires[w2]
@@ -228,76 +515,53 @@ class System:
                         else:
                             new_operations.append(operation)
 
-                    if not has_changes or z_index in wires:
+                    if not has_changes:
+                        stop = True
+                    elif z_index in wires:
                         stop = True
                     else:
                         operations = new_operations
 
                 z_computed = wires.get(z_index, None)
                 if z_computed is None or z_computed != wanted_z_value:
-                    #print(f"{combinaison=} is not valid {z_computed=} {wanted_z_value=}")
+                    # print(f"{combinaison=} is not valid {z_computed=} {wanted_z_value=} {path=}")
                     is_ok = False
+                    to_return_path = path
                     break
                 else:
-                    #print(f"{combinaison=} is valid {z_computed=} wanted={combinaison[1]}")
+                    # print(f"{combinaison=} is valid {z_computed=} wanted={combinaison[1]}")
                     pass
-            return is_ok
+            return is_ok, to_return_path
 
 
         # No changes
-        test = test_permutations(self.operations)
+        test, path = test_permutations()
         if test:
             print("OK without changes")
             return swapped
 
         new_swapped = []
         current_c = 0
-        test = len(list(combinations(self.operations, 8)))
-        print(f"{test=}")
-        for c in combinations(self.operations, 8):
-            current_c += 1
-            current_p = 0
-            for swap in permutations(c, 8):
-                current_p += 1
-                print(f"c={current_c} p={current_p}")
-                if swapped is not None and swap not in swapped:
-                    continue
+        for swap in combinations(self.operations, 2):
+            if swapped is not None and swap not in swapped:
+                continue
 
-                t0, t1, t2, t3, t4, t5, t6, t7 = swap
-                old_0 = t0[3]
-                old_1 = t1[3]
-                old_2 = t2[3]
-                old_3 = t3[3]
-                old_4 = t4[3]
-                old_5 = t5[3]
-                old_6 = t6[3]
-                old_7 = t7[3]
+            t0, t1 = swap
+            old_0 = t0[3]
+            old_1 = t1[3]
 
-                #print(f"Swapping {old_destination_1} and {old_destination_2}")
-                t0[3] = old_1
-                t1[3] = old_0
-                t2[3] = old_3
-                t3[3] = old_2
-                t4[3] = old_5
-                t5[3] = old_4
-                t6[3] = old_7
-                t7[3] = old_6
+            print(f"Swapping {old_0} and {old_1}")
+            t0[3] = old_1
+            t1[3] = old_0
 
-                test = test_permutations(self.operations)
-                if test:
-                    print("OK")
-                    new_swapped.append(swap)
-                else:
-                    pass
+            test = test_permutations()
+            if test:
+                new_swapped.append(swap)
+            else:
+                pass
 
-                t0[3] = old_0
-                t1[3] = old_1
-                t2[3] = old_2
-                t3[3] = old_3
-                t4[3] = old_4
-                t5[3] = old_5
-                t6[3] = old_6
-                t7[3] = old_7
+            t0[3] = old_0
+            t1[3] = old_1
 
         return new_swapped
 
@@ -358,6 +622,10 @@ def solve_part2(data):
 
     ok_length = int(lenght/2)
     system = System(operations, ok_length)
+    # system.guess_interesting_node()
+    system.test_interesting_node()
+    exit(0)
+    print(system.operations_to_permute)
     swapped = None
     for index in range(ok_length):
         print(f"Testing {index=}")

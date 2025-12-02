@@ -256,3 +256,5 @@ iteration 24400
 iteration 24500
 [(['y05', 'AND', 'x05', 'mkq'], ['tsw', 'XOR', 'wwm', 'hdt']), (['y15', 'AND', 'x15', 'mht'], ['y15', 'XOR', 'x15', 'jgt']), (['tsw', 'XOR', 'wwm', 'hdt'], ['rnk', 'OR', 'mkq', 'z05']), (['x09', 'AND', 'y09', 'z09'], ['vkd', 'XOR', 'wqr', 'gbf']), (['x09', 'AND', 'y09', 'z09'], ['gbf', 'OR', 'ttm', 'pdk']), (['dpr', 'AND', 'nvv', 'z30'], ['dpr', 'XOR', 'nvv', 'nbf'])]
 None
+
+index=40 data=[(['y05', 'AND', 'x05', 'mkq'], ['tsw', 'XOR', 'wwm', 'hdt']), (['tsw', 'XOR', 'wwm', 'hdt'], ['rnk', 'OR', 'mkq', 'z05']), (['x09', 'AND', 'y09', 'z09'], ['vkd', 'XOR', 'wqr', 'gbf']), (['x09', 'AND', 'y09', 'z09'], ['gbf', 'OR', 'ttm', 'pdk']), (['dpr', 'AND', 'nvv', 'z30'], ['dpr', 'XOR', 'nvv', 'nbf'])]

@@ -85,20 +85,23 @@ class Keypad:
             path = [cell] + path
             if cell == end:
                 final_path = list(reversed(path))
-                ok_paths.append(final_path)
 
                 if min_path is None:
                     min_path = cost
                     best_path = final_path
+                    ok_paths = [final_path]
                 elif min_path > cost:
                     min_path = cost
                     best_path = final_path
+                    ok_paths = [final_path]
+                elif min_path == cost:
+                    ok_paths.append(final_path)
             else:
                 for neighbor in self.data[cell].keys():
                     if neighbor in path:
                         continue
                     prev_cost = mins.get(neighbor, None)
-                    next_cost = cost + 1
+                    next_cost = cost + self.cost_to_neighbor(cell, neighbor, path)
 
                     if prev_cost is None or next_cost <= prev_cost:
                         mins[neighbor] = next_cost
@@ -140,7 +143,8 @@ class Keypad:
                 min_difference = differences
                 ok_path = path
 
-        return list(filter(lambda x: calculate_difference(x) == min_difference, results))
+        to_return = list(filter(lambda x: calculate_difference(x) == min_difference, results))
+        return to_return
 
 class NumericKeypad(Keypad):
     def __init__(self):
@@ -199,6 +203,9 @@ class NumericKeypad(Keypad):
             },
         }
 
+    def cost_to_neighbor(self, source, neighbor, path):
+        return 1
+
 
 
 
@@ -226,6 +233,10 @@ class DirectionalKeypad(Keypad):
                 "<": "<",
             },
         }
+
+    def cost_to_neighbor(self, source, destination, path):
+        # be smart
+        return 1
         pass
 
 
@@ -287,7 +298,7 @@ def part2():
     print(f'part2 is {result}')
 
 
-test_part1()
-part1()
-test_part2()
-#part2()
+#test_part1()
+#part1()
+#test_part2()
+part2()

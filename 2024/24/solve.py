@@ -123,9 +123,16 @@ class System:
         return data
 
     @cached_property
+    def result_indexes(self):
+        data = []
+        for i in range(46):
+            data.append(f"z{i:02}")
+        return data
+
+    @cached_property
     def operations_to_permute(self):
         # Result of guess_interesting_node
-        test = [(['y05', 'AND', 'x05', 'mkq'], ['tsw', 'XOR', 'wwm', 'hdt']), (['y15', 'AND', 'x15', 'mht'], ['y15', 'XOR', 'x15', 'jgt']), (['tsw', 'XOR', 'wwm', 'hdt'], ['rnk', 'OR', 'mkq', 'z05']), (['x09', 'AND', 'y09', 'z09'], ['vkd', 'XOR', 'wqr', 'gbf']), (['x09', 'AND', 'y09', 'z09'], ['gbf', 'OR', 'ttm', 'pdk']), (['dpr', 'AND', 'nvv', 'z30'], ['dpr', 'XOR', 'nvv', 'nbf'])]
+        test = [(['y05', 'AND', 'x05', 'mkq'], ['tsw', 'XOR', 'wwm', 'hdt']), (['tsw', 'XOR', 'wwm', 'hdt'], ['rnk', 'OR', 'mkq', 'z05']), (['x09', 'AND', 'y09', 'z09'], ['vkd', 'XOR', 'wqr', 'gbf']), (['x09', 'AND', 'y09', 'z09'], ['gbf', 'OR', 'ttm', 'pdk']), (['dpr', 'AND', 'nvv', 'z30'], ['dpr', 'XOR', 'nvv', 'nbf'])]
         to_test = set()
         for swap in test:
             t1, t2 = swap
@@ -139,6 +146,7 @@ class System:
         result_index = defaultdict(list)
         max_index = None
         c_index = 1
+        print(f"{len(self.operations_to_permute)}")
         for c in combinations(self.operations_to_permute, 8):
             print(f"{c_index=}")
             p_index = 1
@@ -206,7 +214,6 @@ class System:
 
 
     def guess_interesting_node(self):
-        result_swap = {}
         result_index = defaultdict(list)
         max_index = None
         test = 1
@@ -231,28 +238,22 @@ class System:
                 else:
                     missed += 1
 
-                if missed > 3:
-                    break
-
-            result_swap[f"{swap}"] = ok_index
             result_index[ok_index].append(swap)
 
-            if ok_index < 42:
-                pass
-            elif max_index is None:
+            if max_index is None:
                 max_index = ok_index
-                print(ok_index)
+                print(f"index={ok_index}")
             elif ok_index > max_index:
                 max_index = ok_index
-                print(ok_index)
+                print(f"index={ok_index}")
             elif ok_index == max_index:
-                print(ok_index)
-                print(f"swap={len(result_index[ok_index])}")
+                print(f"index={ok_index} swap={len(result_index[ok_index])}")
 
             t0[3] = old_0
             t1[3] = old_1
-        print(result_index.get(42, None))
-        print(result_index.get(43, None))
+
+        for index, data in result_index.items():
+            print(f"{index=} {data=}")
         exit(0)
 
 
@@ -260,6 +261,7 @@ class System:
         x_index = f"x{index:02}"
         y_index = f"y{index:02}"
         z_index = f"z{index:02}"
+        next_z_index = f"z{index+1:02}"
 
         keys_to_set = []
 
@@ -267,78 +269,53 @@ class System:
 
         if index > 0:
             previous_index = True
-            test_index = index
-            while test_index > 0:
-                test_index = test_index - 1
-                previous_x_index = f"x{test_index:02}"
-                previous_y_index = f"y{test_index:02}"
-                keys_to_set.append(previous_x_index)
-                keys_to_set.append(previous_y_index)
+            test_index = index - 1
+            previous_x_index = f"x{test_index:02}"
+            previous_y_index = f"y{test_index:02}"
+            keys_to_set.append(previous_x_index)
+            keys_to_set.append(previous_y_index)
 
-        def get_base_dict():
-            base_dict = {}
+        def get_source_dict():
+            source_dict = {}
             for key in self.all_indexes:
-                base_dict[key] = 0
-            return base_dict
+                source_dict[key] = 0
+            return source_dict
+
+        def get_result_dict():
+            result_dict = {}
+            for key in self.result_indexes:
+                result_dict[key] = 0
+            return result_dict
 
         to_test = []
-        if previous_index is False:
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 0
-            to_test.append((base_dict, z_index, 0))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 1
-            base_dict[y_index] = 0
-            to_test.append((base_dict, z_index, 1))
+        source_dict = get_source_dict()
+        source_dict[x_index] = 0
+        source_dict[y_index] = 0
+        result_dict = get_result_dict()
+        to_test.append((source_dict, result_dict))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 1
-            to_test.append((base_dict, z_index, 1))
+        source_dict = get_source_dict()
+        source_dict[x_index] = 1
+        source_dict[y_index] = 0
+        result_dict = get_result_dict()
+        result_dict[z_index] = 1
+        to_test.append((source_dict, result_dict))
 
-            base_dict = get_base_dict()
-            base_dict[y_index] = 1
-            base_dict[x_index] = 1
-            to_test.append((base_dict, z_index, 0))
-        else:
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 0
-            to_test.append((base_dict, z_index, 0))
+        source_dict = get_source_dict()
+        source_dict[x_index] = 0
+        source_dict[y_index] = 1
+        result_dict = get_result_dict()
+        result_dict[z_index] = 1
+        to_test.append((source_dict, result_dict))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 1
-            base_dict[y_index] = 0
-            to_test.append((base_dict, z_index, 1))
-
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 1
-            to_test.append((base_dict, z_index, 1))
-
-            base_dict = get_base_dict()
-            base_dict[y_index] = 1
-            base_dict[x_index] = 1
-            to_test.append((base_dict, z_index, 0))
-
-            base_dict = get_base_dict()
-            base_dict[y_index] = 0
-            base_dict[x_index] = 0
-            for key in keys_to_set:
-                base_dict[key] = 1
-            to_test.append((base_dict, z_index, 1))
-
-        if index == self.lenght - 1:
-            base_dict = get_base_dict()
-            base_dict[y_index] = 1
-            base_dict[x_index] = 1
-            for key in keys_to_set:
-                base_dict[key] = 0
-            next_z_index = f"z{index+1:02}"
-            to_test.append((base_dict, next_z_index, 1))
-
+        source_dict = get_source_dict()
+        source_dict[y_index] = 1
+        source_dict[x_index] = 1
+        result_dict = get_result_dict()
+        result_dict[next_z_index] = 1
+        result_dict[z_index] = 0
+        to_test.append((source_dict, result_dict))
 
         def test_permutations():
 
@@ -347,8 +324,7 @@ class System:
             for combinaison in to_test:
                 operations = self.operations
                 data_to_set = combinaison[0]
-                wanted_z_index = combinaison[1]
-                wanted_z_value = combinaison[2]
+                wanted_results = combinaison[1]
 
                 wires = {}
                 for index, value in data_to_set.items():
@@ -380,14 +356,23 @@ class System:
 
                     if not has_changes:
                         stop = True
-                    elif wanted_z_index in wires:
+                    elif all(map(lambda z_index: z_index in wires, wanted_results.keys())):
                         stop = True
                     else:
                         operations = new_operations
 
-                z_computed = wires.get(wanted_z_index, None)
-                if z_computed is None or z_computed != wanted_z_value:
-                    # print(f"{combinaison=} is not valid {z_computed=} {wanted_z_value=} {path=}")
+                current_ok = True
+                for wanted_z_index in sorted(wanted_results.keys()):
+                    wanted_z_value = wanted_results[wanted_z_index]
+                    z_computed = wires.get(wanted_z_index, None)
+                    # if wanted_z_value == 1 or z_computed == 1:
+                    #     print(data_to_set)
+                    #     print(f"{wanted_z_index=} {wanted_z_value=} {z_computed=}")
+                    if z_computed is None or z_computed != wanted_z_value:
+                        current_ok = False
+                        break
+
+                if not current_ok:
                     is_ok = False
                     to_return_path = path
                     break
@@ -414,69 +399,67 @@ class System:
 
         if index > 0:
             previous_index = True
-            test_index = index
-            while test_index > 0:
-                test_index = test_index - 1
-                previous_x_index = f"x{test_index:02}"
-                previous_y_index = f"y{test_index:02}"
-                keys_to_set.append(previous_x_index)
-                keys_to_set.append(previous_y_index)
+            test_index = index - 1
+            previous_x_index = f"x{test_index:02}"
+            previous_y_index = f"y{test_index:02}"
+            keys_to_set.append(previous_x_index)
+            keys_to_set.append(previous_y_index)
 
-        def get_base_dict():
-            base_dict = {}
-            return base_dict
+        def get_source_dict():
+            source_dict = {}
+            return source_dict
             for key in self.all_indexes:
-                base_dict[key] = 0
-            return base_dict
+                source_dict[key] = 0
+            return source_dict
 
         to_test = []
         if previous_index is False:
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 0
-            to_test.append((base_dict, 0))
+            source_dict = get_source_dict()
+            source_dict[x_index] = 0
+            source_dict[y_index] = 0
+            to_test.append((source_dict, 0))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 1
-            base_dict[y_index] = 0
-            to_test.append((base_dict, 1))
+            source_dict = get_source_dict()
+            source_dict[x_index] = 1
+            source_dict[y_index] = 0
+            to_test.append((source_dict, 1))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 1
-            to_test.append((base_dict, 1))
+            source_dict = get_source_dict()
+            source_dict[x_index] = 0
+            source_dict[y_index] = 1
+            to_test.append((source_dict, 1))
 
-            base_dict = get_base_dict()
-            base_dict[y_index] = 1
-            base_dict[x_index] = 1
-            to_test.append((base_dict, 0))
+            source_dict = get_source_dict()
+            source_dict[y_index] = 1
+            source_dict[x_index] = 1
+            to_test.append((source_dict, 0))
         else:
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 0
-            to_test.append((base_dict, 0))
+            source_dict = get_source_dict()
+            source_dict[x_index] = 0
+            source_dict[y_index] = 0
+            to_test.append((source_dict, 0))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 1
-            base_dict[y_index] = 0
-            to_test.append((base_dict, 1))
+            source_dict = get_source_dict()
+            source_dict[x_index] = 1
+            source_dict[y_index] = 0
+            to_test.append((source_dict, 1))
 
-            base_dict = get_base_dict()
-            base_dict[x_index] = 0
-            base_dict[y_index] = 1
-            to_test.append((base_dict, 1))
+            source_dict = get_source_dict()
+            source_dict[x_index] = 0
+            source_dict[y_index] = 1
+            to_test.append((source_dict, 1))
 
-            base_dict = get_base_dict()
-            base_dict[y_index] = 1
-            base_dict[x_index] = 1
-            to_test.append((base_dict, 0))
+            source_dict = get_source_dict()
+            source_dict[y_index] = 1
+            source_dict[x_index] = 1
+            to_test.append((source_dict, 0))
 
-            base_dict = get_base_dict()
-            base_dict[y_index] = 0
-            base_dict[x_index] = 0
+            source_dict = get_source_dict()
+            source_dict[y_index] = 0
+            source_dict[x_index] = 0
             for key in keys_to_set:
-                base_dict[key] = 1
-            to_test.append((base_dict, 1))
+                source_dict[key] = 1
+            to_test.append((source_dict, 1))
 
         def test_permutations():
 
@@ -622,10 +605,9 @@ def solve_part2(data):
 
     ok_length = int(lenght/2)
     system = System(operations, ok_length)
-    # system.guess_interesting_node()
+    #system.guess_interesting_node()
     system.test_interesting_node()
     exit(0)
-    print(system.operations_to_permute)
     swapped = None
     for index in range(ok_length):
         print(f"Testing {index=}")

@@ -16,19 +16,11 @@ def load_data():
     return data
 
 
-def solve_part1(data):
+def solve_part1(data, bank_size=2):
     result = 0
     for line in data:
-        test_line = line[:-1]
-        digits = sorted(list(set(map(int, test_line))), reverse=True)
-        max_digit = digits[0]
-        max_index = line.find(f"{max_digit}")
-        new_line = line[max_index+1:]
-        new_digits = sorted(list(set(map(int, new_line))), reverse=True)
-        second_digit = new_digits[0]
-        to_add = f"{max_digit}{second_digit}"
-        print(f"{line=} {to_add}")
-        result += int(to_add)
+        to_add = compute_line(line, bank_size)
+        result += to_add
 
     return result
 
@@ -76,6 +68,7 @@ def part1():
     data = load_data()
     result = solve_part1(data)
     print(f'part1 is {result}')
+    assert result == 17278
 
 
 def test_part2_bis():

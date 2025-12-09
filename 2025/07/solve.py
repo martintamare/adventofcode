@@ -80,92 +80,46 @@ def solve_part1(data):
 
 def solve_part2(data):
     grid = CustomGrid(data, cell_obj=CustomCell)
-    path_grid = CustomGrid(data.copy(), cell_obj=CustomCell)
-
-    count = []
-    for line in data:
-        count_line = []
-        for char in line:
-            count_line.append(0)
-        count.append(count_line)
-
-    def print_count():
-        lines = []
-        for row in count:
-            line = ' '.join(map(str, row))
-            lines.append(line)
-        print("\n".join(lines))
 
 
-
-    # Compute cell cost
-    for r_index in range(grid.rows):
-        if r_index == 0:
-            continue
-
-        previous_row_index = r_index - 1
-        previous_row = grid.data[previous_row_index]
-        current_row = grid.data[r_index]
-        for c_index in range(len(previous_row)):
-            prev = previous_row[c_index].data
-            cur = current_row[c_index].data
-            if cur == ".":
-                if prev == "|":
-                    current_row[c_index].data = "|"
-                    count[r_index][c_index] += 1
-                elif prev == "S":
-                    current_row[c_index].data = "|"
-                    count[r_index][c_index] += 1
-                elif prev == ".":
-                    pass
-            elif cur == "|":
-                pass
-            elif cur == "^":
-                if prev == "|":
-                    if c_index > 0:
-                        current_row[c_index-1].data = "|"
-                        count[r_index][c_index-1] += 1
-                    if c_index < len(current_row) - 1:
-                        current_row[c_index+1].data = "|"
-                        count[r_index][c_index+1] += 1
-                elif prev == "S":
-                    raise Exception("totottoto")
-                elif prev == ".":
-                    pass
-            else:
-                print(f"TODO {cur=}")
-                exit(0)
-
-    # now compute path
     init_cell = None
-    for cell in path_grid.data[0]:
+    for cell in grid.data[0]:
         if cell.data == "S":
             init_cell = cell
             break
+
     cache = {}
-    paths = []
-
-    def compute_best_path(cell, path):
-        if cell.row == grid.rows - 1:
-            print("end")
-            print(path)
+    def compute_path(cell):
+        print(f"{cell=}")
+        if cell.index in cache:
+            return cache[cell.index]
+        current_row = cell.row
+        current_col = cell.col
+        next_cell = cell.down_cell
+        if next_cell is None:
+            return 1
+        elif next_cell.data == ".":
+            result = compute_path(next_cell)
+            cache[cell.index] = result
+            return result
+        elif next_cell.data == "^":
+            left_cell = next_cell.left_cell
+            right_cell = next_cell.right_cell
+            result = 0
+            if left_cell:
+                left_cell_result = compute_path(left_cell)
+                result += left_cell_result
+            if right_cell:
+                result += compute_path(right_cell)
+            cache[cell.index] = result
+            return result
+        else:
+            print(f"WHAT TO DO {next_cell=}")
             exit(0)
-        path.append(cell)
-        print(cell)
-        exit(0)
-
-    compute_best_path(init_cell, [])
 
     print(init_cell)
-    print_count()
-    exit(0)
-
-    total = 0
-    for line in count:
-        for s in line:
-            total += s
-    return total
-
+    compute_path(init_cell)
+    return cache[init_cell.index]
 
 
 def test_part1():

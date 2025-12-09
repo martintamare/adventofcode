@@ -26,11 +26,9 @@ class CustomCell(Cell):
             return "."
 
 class Point:
-    def __init__(self, raw):
-        self.raw = raw
-        splitted = raw.split(',')
-        self.x = int(splitted[0])
-        self.y = int(splitted[1])
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
         self.data = None
 
     @property
@@ -42,16 +40,18 @@ class Point:
         y = abs(self.y - other.y) + 1
         return x * y
 
-    def inside(self, mapping, global_max_x, global_max_y):
+    def inside(self, mapping, ko_mapping, global_max_x, global_max_y):
         # Inside if present in mapping
         if self.vector in mapping:
             return True
+        if self.vector in ko_mapping:
+            return False
 
         # Not in mapping : should have 4 neighbords in mapping
-        tested_vectors = set()
         # Up : -y
         has_up = False
         test_y = self.y - 1
+        tested_vectors = set()
         while test_y >= 0:
             test_vector = (self.x, test_y)
             tested_vectors.add(test_vector)
@@ -60,11 +60,26 @@ class Point:
                 break
             test_y -= 1
         if not has_up:
+            for vector in tested_vectors:
+                if vector not in ko_mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    ko_mapping[point.vector] = point
+                    point.data = -1
+                ko_mapping[self.vector] = self
             return False
+        else:
+            for vector in tested_vectors:
+                if vector not in mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    mapping[point.vector] = point
+                    point.data = 3
 
         # Down : +y
         has_down = False
         test_y = self.y + 1
+        tested_vectors = set()
         while test_y <= global_max_y:
             test_vector = (self.x, test_y)
             tested_vectors.add(test_vector)
@@ -73,11 +88,26 @@ class Point:
                 break
             test_y += 1
         if not has_down:
+            for vector in tested_vectors:
+                if vector not in ko_mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    ko_mapping[point.vector] = point
+                    point.data = -1
+                ko_mapping[self.vector] = self
             return False
+        else:
+            for vector in tested_vectors:
+                if vector not in mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    mapping[point.vector] = point
+                    point.data = 3
 
         # Left : -x
         has_left = False
         test_x = self.x - 1
+        tested_vectors = set()
         while test_x >= 0:
             test_vector = (test_x, self.y)
             tested_vectors.add(test_vector)
@@ -86,11 +116,26 @@ class Point:
                 break
             test_x -= 1
         if not has_left:
+            for vector in tested_vectors:
+                if vector not in ko_mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    ko_mapping[point.vector] = point
+                    point.data = -1
+                ko_mapping[self.vector] = self
             return False
+        else:
+            for vector in tested_vectors:
+                if vector not in mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    mapping[point.vector] = point
+                    point.data = 3
 
         # Right : +x
         has_right = False
         test_x = self.x + 1
+        tested_vectors = set()
         while test_x <= global_max_x:
             test_vector = (test_x, self.y)
             tested_vectors.add(test_vector)
@@ -99,18 +144,25 @@ class Point:
                 break
             test_x += 1
         if not has_left:
+            for vector in tested_vectors:
+                if vector not in ko_mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    ko_mapping[point.vector] = point
+                    point.data = -1
+                ko_mapping[self.vector] = self
             return False
+        else:
+            for vector in tested_vectors:
+                if vector not in mapping:
+                    x, y = vector
+                    point = Point(x, y)
+                    mapping[point.vector] = point
+                    point.data = 3
 
-        # Update cache
-        for vector in tested_vectors:
-            if vector not in mapping:
-                x, y = vector
-                point = Point(f"{x},{y}")
-                mapping[point.vector] = point
-                point.data = 3
         return True
 
-    def area_ok_to(self, other, mapping, global_max_x, global_max_y):
+    def area_ok_to(self, other, mapping, ko_mapping, global_max_x, global_max_y):
         # Ok if all points are 1 or 2 within grid
         min_x = min(self.x, other.x)
         max_x = max(self.x, other.x)
@@ -149,35 +201,30 @@ class Point:
             return False
 
         # Now check that each point is inside
-        if point_a is None:
-            point_a = Point(f"{min_x},{min_y}")
-        if not point_a.inside(mapping, global_max_x, global_max_y):
-            return False
+        for x in range(min_x, max_x + 1):
+            test = Point(x, max_y)
+            if not test.inside(mapping, ko_mapping, global_max_x, global_max_y):
+                return False
 
-        if point_b is None:
-            point_b = Point(f"{min_x},{max_y}")
-        if not point_b.inside(mapping, global_max_x, global_max_y):
-            return False
+        for x in range(min_x, max_x + 1):
+            test = Point(x, min_y)
+            if not test.inside(mapping, ko_mapping, global_max_x, global_max_y):
+                return False
 
-        if point_c is None:
-            point_c = Point(f"{max_x},{min_y}")
-        if not point_c.inside(mapping, global_max_x, global_max_y):
-            return False
+        for y in range(min_y, max_y + 1):
+            test = Point(min_x, y)
+            if not test.inside(mapping, ko_mapping, global_max_x, global_max_y):
+                return False
 
-        if point_d is None:
-            point_d = Point(f"{max_x},{max_y}")
-        if not point_d.inside(mapping, global_max_x, global_max_y):
-            return False
-
-        if point_e is None:
-            point_e = Point(f"{middle_x},{middle_y}")
-        if not point_e.inside(mapping, global_max_x, global_max_y):
-            return False
+        for y in range(min_y, max_y + 1):
+            test = Point(max_x, y)
+            if not test.inside(mapping, ko_mapping, global_max_x, global_max_y):
+                return False
 
         return True
 
     def __repr__(self):
-        return self.raw
+        return f"{self.vector}"
 
 
 def load_data():
@@ -191,7 +238,8 @@ def load_data():
 def solve_part1(data):
     points = []
     for line in data:
-        point = Point(line)
+        splitted = line.split(',')
+        point = Point(int(splitted[0]), int(splitted[1]))
         points.append(point)
 
     max_area = None
@@ -211,7 +259,8 @@ def solve_part2(data):
     max_x = None
     max_y = None
     for line in data:
-        point = Point(line)
+        splitted = line.split(',')
+        point = Point(int(splitted[0]), int(splitted[1]))
         points.append(point)
         mapping[point.vector] = point
         point.data = 1
@@ -240,7 +289,7 @@ def solve_part2(data):
             min_y = min(last_point.y, point.y)
             max_y = max(last_point.y, point.y)
             for y in range(min_y+1, max_y):
-                green = Point(f"{last_point.x},{y}")
+                green = Point(last_point.x, y)
                 greens.append(green)
                 mapping[green.vector] = green
                 green.data = 2
@@ -248,7 +297,7 @@ def solve_part2(data):
             min_x = min(last_point.x, point.x)
             max_x = max(last_point.x, point.x)
             for x in range(min_x+1, max_x):
-                green = Point(f"{x},{last_point.y}")
+                green = Point(x, last_point.y)
                 greens.append(green)
                 mapping[green.vector] = green
                 green.data = 2
@@ -258,12 +307,18 @@ def solve_part2(data):
 
     print(f"{len(points)=} {len(greens)=} {len(mapping.keys())}")
 
+    heap = []
+
+    ko_mapping = {}
     max_area = None
+    iteration = 0
     for p1, p2 in combinations(points, 2):
+        iteration += 1
+        print(f"{iteration=}")
         area = p1.area_to(p2)
         if max_area is not None and area < max_area:
             continue
-        if p1.area_ok_to(p2, mapping, global_max_x, global_max_y):
+        if p1.area_ok_to(p2, mapping, ko_mapping, global_max_x, global_max_y):
             if max_area is None:
                 max_area = area
                 print(f"{p1=} {p2=} {max_area=}")
@@ -299,6 +354,7 @@ def part2():
     assert result < 4771356500
     assert result < 4743489398
     assert result < 4615432660
+    assert result != 1329648570
 
 
 test_part1()

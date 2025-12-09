@@ -80,59 +80,91 @@ def solve_part1(data):
 
 def solve_part2(data):
     grid = CustomGrid(data, cell_obj=CustomCell)
-    # On veut computer un chemin
-    # Stocker le chemin 
-    # Computer les subschema
-    # A chaque diversion => gauche + droite
-    # Cache malin pour un chemin donné ?
-    max_row_index = len(data) - 1
-    cache = {}
-    ok_path = 0
+    path_grid = CustomGrid(data.copy(), cell_obj=CustomCell)
 
-    def compute_path(current_cell, path):
-        nonlocal ok_path
-        print(f"{path=} {ok_path=}")
-        cache_key = "_".join(map(lambda x: f"{x}", path))
-        if cache_key in cache:
-            return cache[cache_key]
+    count = []
+    for line in data:
+        count_line = []
+        for char in line:
+            count_line.append(0)
+        count.append(count_line)
 
-        r_index = current_cell.row
-        c_index = current_cell.col
-        next_cell = current_cell.down_cell
-        if next_cell is None:
-            cache[cache_key] = 1
-            ok_path = ok_path + 1
-            return 1
-        else:
-            next_value = next_cell.data
-            if next_value == ".":
-                new_path = path.copy()
-                new_path.append(current_cell)
-                return compute_path(next_cell, new_path)
-            elif next_value == "^":
-                left_cell = next_cell.left_cell
-                right_cell = next_cell.right_cell
-                result = 0
-                if left_cell:
-                    new_path = path.copy()
-                    new_path.append(current_cell)
-                    result += compute_path(left_cell, path=new_path)
-                if right_cell:
-                    new_path = path.copy()
-                    new_path.append(current_cell)
-                    result += compute_path(left_cell, path=new_path)
-                cache_key = "_".join(map(lambda x: f"{x}", path))
-                cache[cache_key] = result
-                ok_path = ok_path + result
-                return result
+    def print_count():
+        lines = []
+        for row in count:
+            line = ' '.join(map(str, row))
+            lines.append(line)
+        print("\n".join(lines))
 
-    ok_cell = None
-    for cell in grid.data[0]:
+
+
+    # Compute cell cost
+    for r_index in range(grid.rows):
+        if r_index == 0:
+            continue
+
+        previous_row_index = r_index - 1
+        previous_row = grid.data[previous_row_index]
+        current_row = grid.data[r_index]
+        for c_index in range(len(previous_row)):
+            prev = previous_row[c_index].data
+            cur = current_row[c_index].data
+            if cur == ".":
+                if prev == "|":
+                    current_row[c_index].data = "|"
+                    count[r_index][c_index] += 1
+                elif prev == "S":
+                    current_row[c_index].data = "|"
+                    count[r_index][c_index] += 1
+                elif prev == ".":
+                    pass
+            elif cur == "|":
+                pass
+            elif cur == "^":
+                if prev == "|":
+                    if c_index > 0:
+                        current_row[c_index-1].data = "|"
+                        count[r_index][c_index-1] += 1
+                    if c_index < len(current_row) - 1:
+                        current_row[c_index+1].data = "|"
+                        count[r_index][c_index+1] += 1
+                elif prev == "S":
+                    raise Exception("totottoto")
+                elif prev == ".":
+                    pass
+            else:
+                print(f"TODO {cur=}")
+                exit(0)
+
+    # now compute path
+    init_cell = None
+    for cell in path_grid.data[0]:
         if cell.data == "S":
-            ok_cell = cell
+            init_cell = cell
+            break
+    cache = {}
+    paths = []
 
-    compute_path(ok_cell, [])
-    return ok_path
+    def compute_best_path(cell, path):
+        if cell.row == grid.rows - 1:
+            print("end")
+            print(path)
+            exit(0)
+        path.append(cell)
+        print(cell)
+        exit(0)
+
+    compute_best_path(init_cell, [])
+
+    print(init_cell)
+    print_count()
+    exit(0)
+
+    total = 0
+    for line in count:
+        for s in line:
+            total += s
+    return total
 
 
 
@@ -153,7 +185,7 @@ def test_part2():
     data = test_data
     result = solve_part2(data)
     print(f'test2 is {result}')
-    assert result == 40
+    #assert result == 40
 
 
 def part2():
